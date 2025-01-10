@@ -1,1 +1,1 @@
-export { default as component } from "../../../../src/routes/csumi/+page.svelte";
+export { default as component } from "../../../../src/routes/Auth/+page.svelte";
