@@ -1,4 +1,6 @@
 <script>
+	import { Avatar, LightSwitch } from "@skeletonlabs/skeleton";
+
     let username = '';
     let password = '';
 
@@ -8,7 +10,10 @@
 </script>
 
 <main>
-    <h1>Login</h1>
+    <h1>Login</h1> 
+    <button type="button" class="btn variant-filled">Button</button>
+    <LightSwitch />
+    <Avatar src="https://images.unsplash.com/photo-1617296538902-887900d9b592?ixid=M3w0Njc5ODF8MHwxfGFsbHx8fHx8fHx8fDE2ODc5NzExMDB8&ixlib=rb-4.0.3&w=128&h=128&auto=format&fit=crop" width="w-32" rounded="rounded-full" />
     <form on:submit|preventDefault={handleSubmit}>
         <div>
             <label for="username">Username:</label>
@@ -22,41 +27,3 @@
     </form>
 </main>
 
-<style>
-    main {
-        max-width: 400px;
-        margin: 0 auto;
-        padding: 1rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-
-    div {
-        margin-bottom: 1rem;
-    }
-
-    label {
-        display: block;
-        margin-bottom: 0.5rem;
-    }
-
-    input {
-        width: 100%;
-        padding: 0.5rem;
-        box-sizing: border-box;
-    }
-
-    button {
-        width: 100%;
-        padding: 0.5rem;
-        background-color: #007BFF;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-    }
-
-    button:hover {
-        background-color: #0056b3;
-    }
-</style>
