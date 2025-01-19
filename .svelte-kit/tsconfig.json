@@ -1,6 +1,9 @@
 {
 	"compilerOptions": {
 		"paths": {
+			"@/*": [
+				"../path/to/lib/*"
+			],
 			"$lib": [
 				"../src/lib"
 			],

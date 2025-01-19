@@ -1,59 +1,238 @@
 <script lang="ts">
-	import { AppBar, AppShell, LightSwitch, Avatar } from '@skeletonlabs/skeleton';
-
-	let isOpen = false;
-
-	function toggleMenu() {
-		isOpen = !isOpen;
+	import { Button } from "$lib/components/ui/button";
+	import { Avatar, AvatarFallback } from "$lib/components/ui/avatar";
+	import { User, Menu } from "lucide-svelte";
+	import { page } from "$app/stores";
+	import {
+	  Sheet,
+	  SheetContent,
+	  SheetTrigger,
+	} from "$lib/components/ui/sheet";
+	import { onMount } from 'svelte';
+  
+	// Mock auth store - replace with your actual auth store
+	import { writable } from 'svelte/store';
+	const user = writable<{ username: string } | null>(null);
+	
+	let isBrowser = false;
+	
+	onMount(() => {
+	  isBrowser = true;
+	});
+  
+	function getInitials(username: string) {
+	  return username
+		.split(' ')
+		.map(word => word[0])
+		.join('')
+		.toUpperCase();
 	}
 
-	// This would typically come from your auth state
-	const isLoggedIn = false;
-	const userAvatar = '/path/to/user/avatar.jpg';
-</script>
 
-<AppShell>
-	<svelte:fragment slot="header">
-		<AppBar>
-			<svelte:fragment slot="lead">
-				<strong class="text-xl uppercase">Logo</strong>
-			</svelte:fragment>
-			<svelte:fragment slot="default">
-				<nav class="hidden md:block">
-					<ul class="flex justify-center space-x-4">
-						<li><a href="/" class="variant-ghost-surface btn btn-sm">Home</a></li>
-						<li><a href="/products" class="variant-ghost-surface btn btn-sm">Products</a></li>
-						<li><a href="/about" class="variant-ghost-surface btn btn-sm">About</a></li>
-					</ul>
-				</nav>
-			</svelte:fragment>
-			<svelte:fragment slot="trail">
-				<LightSwitch />
-				{#if isLoggedIn}
-					<Avatar src={userAvatar} width="w-10" rounded="rounded-full" />
-				{:else}
-					<button class="variant-ghost-surface btn btn-sm"> asd2 </button>
-				{/if}
-				<button class="variant-ghost-surface btn btn-sm md:hidden" on:click={toggleMenu}>
-					asd
-				</button>
-			</svelte:fragment>
-		</AppBar>
-	</svelte:fragment>
-</AppShell>
-
-{#if isOpen}
-	<nav class="bg-surface-100-800-token fixed inset-0 z-50 flex items-center justify-center">
-		<div class="flex flex-col space-y-4">
-			<a href="/" class="variant-ghost-surface btn btn-lg" on:click={toggleMenu}>Home</a>
-			<a href="/products" class="variant-ghost-surface btn btn-lg" on:click={toggleMenu}>Products</a
+	import { Motion } from "svelte-motion";
+    let left = 0;
+    let width = 0;
+    let opacity = 0;
+    let ref: any;
+    let navs = [
+      {
+        name: "Home",
+        link: "/",
+      },
+      {
+        name: "Learning",
+        link: "/Learning",
+      },
+      {
+        name: "Quiz",
+        link: "/Quiz",
+      },
+    ];
+    let positionMotion = (node: HTMLElement) => {
+      let refNode = () => {
+        let mint = node.getBoundingClientRect();
+        left = node.offsetLeft;
+        width = mint.width;
+        opacity = 1;
+      };
+      node.addEventListener("mouseenter", refNode);
+      return {
+        destroy() {
+          node.removeEventListener("mouseenter", refNode);
+        },
+      };
+    };
+  </script>
+  
+  {#if isBrowser}
+  <nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+	<div class="container flex h-14 max-w-screen-2xl items-center justify-between">
+	  <!-- Left Section with Logo and Mobile Menu -->
+	  <div class="flex items-center w-full md:w-auto justify-between md:justify-start">
+		<div class="max-md:hidden py-20 w-full mt-14">
+			<div class="border-2 border-black bg-white p-1 rounded-full">
+			<a
+				href="/"
+			  class="h-12 relative mx-auto flex items-center justify-center w-full rounded-full  bg-white p-4 text-xs uppercase text-black font-semibold tracking-wide md:p-6 md:text-base transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none"
 			>
-			<a href="/about" class="variant-ghost-surface btn btn-lg" on:click={toggleMenu}>About</a>
-			{#if isLoggedIn}
-				<button class="variant-ghost-surface btn btn-lg" on:click={toggleMenu}>Profile</button>
-			{:else}
-				<button class="variant-ghost-surface btn btn-lg" on:click={toggleMenu}>Login</button>
-			{/if}
+			  <span class="z-10 font-bold">BrandName</span>
+			</a>
+			</div>
+		  </div>
+		<a href="/" class="md:hidden flex items-center space-x-2">
+		  <span class="font-bold text-md">YourBrand</span>
+		</a>
+		
+		<!-- Mobile Menu Button -->
+		<div class="md:hidden">
+		  <Sheet>
+			<SheetTrigger>
+			  <Button variant="ghost" size="icon">
+				<Menu class="h-5 w-5" />
+			  </Button>
+			</SheetTrigger>
+			<SheetContent side="left" class="w-72 flex flex-col items-center justify-center p-0">
+			  <nav class="flex flex-col items-center justify-center space-y-4 w-full h-full">
+				{#each [
+				  { href: "/", label: "Home" },
+				  { href: "/Learning", label: "Learning" },
+				  { href: "/Quiz", label: "Quiz" }
+				] as route}
+				  <a 
+					href={route.href}
+					class={`
+					  w-48 text-center
+					  px-4 py-2 font-bold text-md rounded-full transition-all duration-300
+					  border border-transparent
+					  ${$page.url.pathname === route.href ? 
+						'border-primary bg-primary/10' : 
+						'hover:border-primary hover:shadow-[inset_0_0_12px_rgba(0,0,0,0.05)] hover:bg-primary/5'
+					  }
+					`}
+				  >
+					{route.label}
+				  </a>
+				{/each}
+				{#if $user}
+					<Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full">
+						<Avatar class="h-8 w-8">
+						<AvatarFallback>
+							{getInitials($user.username)}
+						</AvatarFallback>
+						</Avatar>
+					</Button>
+				{:else}
+				<a 
+				href="/Auth"
+				class={`
+				  w-48 text-center
+				  px-4 py-2 font-bold text-md rounded-full transition-all duration-300
+				  border border-transparent
+				  ${$page.url.pathname === "/Auth" ? 
+					'border-primary bg-primary/10' : 
+					'hover:border-primary hover:shadow-[inset_0_0_12px_rgba(0,0,0,0.05)] hover:bg-primary/5'
+				  }
+				`}
+			  >
+						Login
+				</a>
+				{/if}
+			  </nav>
+			</SheetContent>
+		  </Sheet>
 		</div>
-	</nav>
-{/if}
+	  </div>
+  
+	  <!-- Desktop Navigation Links -->
+	  <div class="hidden md:flex flex-1 items-center justify-center space-x-2">
+		<!-- {#each [
+				{ href: "/", label: "Home" },
+				{ href: "/Learning", label: "Learning" },
+				{ href: "/Quiz", label: "Quiz" }
+		] as route}
+		  <Button 
+			variant="ghost" 
+			href={route.href}
+			class={`
+			  rounded-full 
+			  transition-all 
+			  duration-300
+			  border 
+			  border-transparent
+			  font-bold
+			  text-md
+			  ${$page.url.pathname === route.href ? 
+				'border-primary bg-primary/10' : 
+				'hover:border-primary hover:shadow-[inset_0_0_12px_rgba(0,0,0,0.05)] hover:bg-primary/5'
+			  }
+			`}
+		  >
+			{route.label}
+		  </Button>
+		{/each} -->
+		<div class="py-20 w-full mt-14">
+			<ul
+			  on:mouseleave={() => {
+				width = width;
+				left = left;
+				opacity = 0;
+			  }}
+			  class="relative mx-auto flex w-fit rounded-full border-2 border-black bg-white p-1"
+			>
+			  {#each navs as item}
+				<li
+				  use:positionMotion
+				  class="relative z-10 block cursor-pointer px-3 py-1.5 text-xs uppercase text-white mix-blend-difference md:px-5 md:py-3 md:text-base"
+				>
+				  <a href={item.link}>{item.name}</a>
+				</li>
+			  {/each}
+			  <Motion
+				animate={{
+				  left: left,
+				  width: width,
+				  opacity: opacity,
+				}}
+				transition={{
+				  type: "spring",
+				  stiffness: 400,
+				  damping: 30,
+		  
+				}}
+				let:motion
+			  >
+				<li
+				  use:motion
+				  class="absolute z-0 h-7 rounded-full bg-black md:h-12"
+				></li>
+			  </Motion>
+			</ul>
+		  </div>
+	  </div>
+  
+	  <!-- Auth Section -->
+	  <div class="hidden md:flex items-center justify-end space-x-2">
+		{#if $user}
+		  <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full">
+			<Avatar class="h-8 w-8">
+			  <AvatarFallback>
+				{getInitials($user.username)}
+			  </AvatarFallback>
+			</Avatar>
+		  </Button>
+		{:else}
+		<div class="py-20 w-full mt-14">
+			<div class="border-2 border-black bg-white p-1 rounded-full">
+			<button
+			  class="h-12 relative mx-auto flex items-center justify-center w-full rounded-full  bg-white p-4 text-xs uppercase text-black font-semibold tracking-wide md:p-6 md:text-base transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none"
+			>
+			  <span class="z-10 font-bold">Login</span>
+			</button>
+			</div>
+		  </div>
+		  
+		{/if}
+	  </div>
+	</div>
+  </nav>
+  {/if}
