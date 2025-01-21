@@ -30,6 +30,7 @@
 
 
 	import { Motion } from "svelte-motion";
+	import LoginModal from "./login-modal.svelte";
     let left = 0;
     let width = 0;
     let opacity = 0;
@@ -62,6 +63,12 @@
         },
       };
     };
+
+	function handleLogin(event: { detail: { success: any; }; }) {
+    if (event.detail.success) {
+      // Handle successful login
+    }
+  }
   </script>
   
   {#if isBrowser}
@@ -223,11 +230,9 @@
 		{:else}
 		<div class="py-20 w-full mt-14">
 			<div class="border-2 border-black bg-white p-1 rounded-full">
-			<button
-			  class="h-12 relative mx-auto flex items-center justify-center w-full rounded-full  bg-white p-4 text-xs uppercase text-black font-semibold tracking-wide md:p-6 md:text-base transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none"
-			>
-			  <span class="z-10 font-bold">Login</span>
-			</button>
+			
+			  <LoginModal on:login={handleLogin} />
+		
 			</div>
 		  </div>
 		  
