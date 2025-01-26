@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from "$lib/components/ui/button";
 	import { Avatar, AvatarFallback } from "$lib/components/ui/avatar";
-	import { User, Menu } from "lucide-svelte";
+	import { User, Menu, CircleAlert } from "lucide-svelte";
 	import { page } from "$app/stores";
 	import {
 	  Sheet,
@@ -9,10 +9,19 @@
 	  SheetTrigger,
 	} from "$lib/components/ui/sheet";
 	import { onMount } from 'svelte';
-  
-	// Mock auth store - replace with your actual auth store
-	import { writable } from 'svelte/store';
-	const user = writable<{ username: string } | null>(null);
+	import * as Alert from "$lib/components/ui/alert";
+	import { loggedInerror } from './stores/loggedInStores2';
+
+// Reactive subscription to the store
+let isLoggedInerror: boolean;
+$: $loggedInerror, isLoggedInerror = $loggedInerror;
+
+	
+	import { username } from './stores/user';
+
+	// Subscribe to the store
+	let isusername: string;
+	$: $username, isusername = $username; // React to store updates
 	
 	let isBrowser = false;
 	
@@ -20,13 +29,14 @@
 	  isBrowser = true;
 	});
   
-	function getInitials(username: string) {
-	  return username
-		.split(' ')
-		.map(word => word[0])
-		.join('')
-		.toUpperCase();
+	function getInitials(name: string) {
+		if (!name) return '';
+		return name
+			.split(' ')
+			.map((part) => part[0].toUpperCase()) // Take the first letter of each word
+			.join(''); // Combine them
 	}
+	$: initials = getInitials(isusername);
 
 
 	import { Motion } from "svelte-motion";
@@ -69,6 +79,11 @@
       // Handle successful login
     }
   }
+  import { loggedIn } from './stores/loggedInStores';
+
+	// Subscribe to the store
+	let isLoggedIn;
+	$: $loggedIn, isLoggedIn = $loggedIn; // React to store updates
   </script>
   
   {#if isBrowser}
@@ -120,11 +135,11 @@
 					{route.label}
 				  </a>
 				{/each}
-				{#if $user}
+				{#if  $loggedIn}
 					<Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full">
 						<Avatar class="h-8 w-8">
-						<AvatarFallback>
-							{getInitials($user.username)}
+						<AvatarFallback class="bg-primary text-red">
+							{initials}
 						</AvatarFallback>
 						</Avatar>
 					</Button>
@@ -219,13 +234,17 @@
   
 	  <!-- Auth Section -->
 	  <div class="hidden md:flex items-center justify-end space-x-2">
-		{#if $user}
-		  <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full">
-			<Avatar class="h-8 w-8">
+		{#if  $loggedIn}
+		  <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full mt-14 mr-11">
+			<div class="border-2 border-black bg-white p-1 rounded-full">
+			<Avatar class="z-10 font-bold h-12 relative mx-auto flex items-center justify-center w-full rounded-full 
+               bg-white p-4 text-xs uppercase text-black tracking-wide md:p-6 md:text-base 
+               transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none">
 			  <AvatarFallback>
-				{getInitials($user.username)}
+				{initials}
 			  </AvatarFallback>
 			</Avatar>
+			</div>
 		  </Button>
 		{:else}
 		<div class="py-20 w-full mt-14">
@@ -239,5 +258,14 @@
 		{/if}
 	  </div>
 	</div>
+	{#if isLoggedInerror}
+	<Alert.Root variant="destructive">
+		<CircleAlert class="h-4 w-4" />
+		<Alert.Title>Error</Alert.Title>
+		<Alert.Description
+		  >Your session has expired. Please login again.</Alert.Description
+		>
+	  </Alert.Root>
+  {/if}
   </nav>
   {/if}

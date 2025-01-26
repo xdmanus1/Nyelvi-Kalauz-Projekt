@@ -4,17 +4,28 @@
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
     import { fade, fly, scale, slide } from "svelte/transition";
-
+    import Navbar from "./navbar.svelte";
+    import { loggedIn } from './stores/loggedInStores';
+    import { loggedInerror } from './stores/loggedInStores2';
+    import { username } from './stores/user';
     let isLogin = true;
-    let username = "";
     let password = "";
     let email = "";
+    
 
     $: fadeClass = isLogin ? "fade-in" : "fade-out";
 
     function handleSubmit() {
         console.log(isLogin ? "Logging in..." : "Registering...");
         console.log({ username, password, email });
+        if ($username == "test" && password == "test") {
+            console.log("Logged in successfully!");
+            loggedIn.set(true);
+        }
+        else {
+            console.log("Invalid credentials!");
+            loggedInerror.set(true);
+        }
     }
 
     function toggleForm() {
@@ -89,7 +100,7 @@
                             <Label for="username" class="text-sm font-medium">Username</Label>
                             <Input
                                 id="username"
-                                bind:value={username}
+                                bind:value={$username}
                                 class="rounded-full w-full"
                                 placeholder={isLogin ? "Enter your username" : "Choose a username"}
                             />
