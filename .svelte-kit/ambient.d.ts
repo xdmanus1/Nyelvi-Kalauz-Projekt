@@ -40,6 +40,7 @@ declare module '$env/static/private' {
 	export const GIT_ASKPASS: string;
 	export const npm_node_execpath: string;
 	export const npm_package_devDependencies_vite: string;
+	export const npm_package_devDependencies_svelte_sonner: string;
 	export const npm_package_devDependencies__sveltejs_vite_plugin_svelte: string;
 	export const npm_config_init_version: string;
 	export const SHLVL: string;
@@ -61,6 +62,7 @@ declare module '$env/static/private' {
 	export const SSL_CERT_FILE: string;
 	export const npm_package_scripts_check: string;
 	export const DBUS_SESSION_BUS_ADDRESS: string;
+	export const npm_package_devDependencies_mode_watcher: string;
 	export const npm_config_engine_strict: string;
 	export const COLORTERM: string;
 	export const npm_package_description: string;
@@ -177,6 +179,7 @@ declare module '$env/dynamic/private' {
 		GIT_ASKPASS: string;
 		npm_node_execpath: string;
 		npm_package_devDependencies_vite: string;
+		npm_package_devDependencies_svelte_sonner: string;
 		npm_package_devDependencies__sveltejs_vite_plugin_svelte: string;
 		npm_config_init_version: string;
 		SHLVL: string;
@@ -198,6 +201,7 @@ declare module '$env/dynamic/private' {
 		SSL_CERT_FILE: string;
 		npm_package_scripts_check: string;
 		DBUS_SESSION_BUS_ADDRESS: string;
+		npm_package_devDependencies_mode_watcher: string;
 		npm_config_engine_strict: string;
 		COLORTERM: string;
 		npm_package_description: string;

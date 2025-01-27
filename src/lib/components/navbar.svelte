@@ -9,9 +9,8 @@
 	  SheetTrigger,
 	} from "$lib/components/ui/sheet";
 	import { onMount } from 'svelte';
-	import * as Alert from "$lib/components/ui/alert";
 	import { loggedInerror } from './stores/loggedInStores2';
-
+	
 // Reactive subscription to the store
 let isLoggedInerror: boolean;
 $: $loggedInerror, isLoggedInerror = $loggedInerror;
@@ -258,14 +257,6 @@ $: $loggedInerror, isLoggedInerror = $loggedInerror;
 		{/if}
 	  </div>
 	</div>
-	{#if isLoggedInerror}
-	<Alert.Root variant="destructive">
-		<CircleAlert class="h-4 w-4" />
-		<Alert.Title>Error</Alert.Title>
-		<Alert.Description
-		  >Your session has expired. Please login again.</Alert.Description
-		>
-	  </Alert.Root>
-  {/if}
+	
   </nav>
   {/if}

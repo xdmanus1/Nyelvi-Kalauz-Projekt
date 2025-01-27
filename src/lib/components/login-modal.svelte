@@ -8,6 +8,8 @@
     import { loggedIn } from './stores/loggedInStores';
     import { loggedInerror } from './stores/loggedInStores2';
     import { username } from './stores/user';
+    import { toast } from "svelte-sonner";
+
     let isLogin = true;
     let password = "";
     let email = "";
@@ -21,10 +23,13 @@
         if ($username == "test" && password == "test") {
             console.log("Logged in successfully!");
             loggedIn.set(true);
+            toast("Logged in successfully!");
         }
         else {
             console.log("Invalid credentials!");
             loggedInerror.set(true);
+            toast("Login error please try again!");
+
         }
     }
 
