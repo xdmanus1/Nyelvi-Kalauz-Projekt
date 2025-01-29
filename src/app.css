@@ -84,3 +84,30 @@ body {
   font-weight: 600;
   font-style: normal;
 }
+
+/* app.css */
+.toast[data-type="error"] {
+	background-color: var(--error-bg) !important;
+	border-color: var(--error-border) !important;
+	color: var(--error-text) !important;
+  border-radius: 10rem !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+.toast[data-type="success"] {
+  background-color: var(--success-bg) !important;
+	border-color: var(--success-border) !important;
+	color: var(--success-text) !important;
+  border-radius: 10rem !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+.toast[data-type="error"] .description {
+	color: var(--error-text) !important;
+}
+
+.toast[data-type="success"] .description {
+	color: var(--success-text) !important;
+}

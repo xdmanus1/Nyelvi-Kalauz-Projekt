@@ -23,12 +23,12 @@
         if ($username == "test" && password == "test") {
             console.log("Logged in successfully!");
             loggedIn.set(true);
-            toast("Logged in successfully!");
+            toast.success("Logged in successfully!");
         }
         else {
             console.log("Invalid credentials!");
             loggedInerror.set(true);
-            toast("Login error please try again!");
+            toast.error("Login error please try again!");
 
         }
     }

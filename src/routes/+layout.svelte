@@ -17,5 +17,15 @@
 <Navbar/>
 <Toaster />
 
-
 {@render children()}
+<style>.toast[data-type="error"] {
+	background-color: hsl(0 100% 97%) !important;
+	border-color: hsl(0 93% 94%);
+	color: hsl(0 84% 31%);
+}
+
+.toast[data-type="success"] {
+	background-color: hsl(138 76% 97%);
+	border-color: hsl(139 65% 92%);
+	color: hsl(140 62% 26%);
+}</style>

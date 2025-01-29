@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Dropdown from './dropdown.svelte';
 	import { Button } from "$lib/components/ui/button";
 	import { Avatar, AvatarFallback } from "$lib/components/ui/avatar";
 	import { User, Menu, CircleAlert } from "lucide-svelte";
@@ -90,7 +91,7 @@ $: $loggedInerror, isLoggedInerror = $loggedInerror;
 	<div class="container flex h-14 max-w-screen-2xl items-center justify-between">
 	  <!-- Left Section with Logo and Mobile Menu -->
 	  <div class="flex items-center w-full md:w-auto justify-between md:justify-start">
-		<div class="max-md:hidden py-20 w-full mt-14">
+		<div class="max-md:hidden w-full mt-14">
 			<div class="border-2 border-black bg-white p-1 rounded-full">
 			<a
 				href="/"
@@ -191,7 +192,7 @@ $: $loggedInerror, isLoggedInerror = $loggedInerror;
 			{route.label}
 		  </Button>
 		{/each} -->
-		<div class="py-20 w-full mt-14">
+		<div class=" w-full mt-14">
 			<ul
 			  on:mouseleave={() => {
 				width = width;
@@ -235,15 +236,7 @@ $: $loggedInerror, isLoggedInerror = $loggedInerror;
 	  <div class="hidden md:flex items-center justify-end space-x-2">
 		{#if  $loggedIn}
 		  <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full mt-14 mr-11">
-			<div class="border-2 border-black bg-white p-1 rounded-full">
-			<Avatar class="z-10 font-bold h-12 relative mx-auto flex items-center justify-center w-full rounded-full 
-               bg-white p-4 text-xs uppercase text-black tracking-wide md:p-6 md:text-base 
-               transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none">
-			  <AvatarFallback>
-				{initials}
-			  </AvatarFallback>
-			</Avatar>
-			</div>
+			<Dropdown/>
 		  </Button>
 		{:else}
 		<div class="py-20 w-full mt-14">

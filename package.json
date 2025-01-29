@@ -46,7 +46,8 @@
 		"@tailwindcss/container-queries": "^0.1.1",
 		"@tailwindcss/forms": "^0.5.9",
 		"@tailwindcss/typography": "^0.5.15",
-		"lucide-svelte": "^0.473.0",
+		"dlx": "^0.2.1",
+		"lucide-svelte": "^0.474.0",
 		"svelte-motion": "^0.12.2"
 	}
 }
