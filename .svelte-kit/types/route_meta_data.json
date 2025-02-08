@@ -1,8 +1,13 @@
 {
-	"/": [],
+	"/": [
+		"src/routes/+page.server.js"
+	],
 	"/Auth": [],
 	"/Learning": [],
 	"/Profile": [],
 	"/Quiz": [],
-	"/Test": []
+	"/Test": [],
+	"/protected": [
+		"src/routes/protected/+page.server.ts"
+	]
 }

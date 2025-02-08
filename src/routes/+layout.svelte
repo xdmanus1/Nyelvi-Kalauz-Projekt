@@ -13,6 +13,19 @@
 
 	// Reactively update `isLoggedInerror` whenever the store value changes
 	$: isLoggedInerror = $loggedInerror;
+	import { onMount } from 'svelte';
+    import { authStore } from '../lib/components/stores/AuthStore';
+	import { goto } from '$app/navigation';
+	let user: import('@supabase/gotrue-js').User | null = null;
+    authStore.subscribe(({ user: currentUser }) => {
+        user = currentUser;
+    });
+    onMount(async () => {
+        await authStore.initialize();
+		if (!user) {
+            goto("/");
+        }
+    });
 </script>
 <Navbar/>
 <Toaster />
