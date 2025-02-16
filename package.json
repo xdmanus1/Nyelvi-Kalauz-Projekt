@@ -21,7 +21,7 @@
 		"@sveltejs/vite-plugin-svelte": "^4.0.0",
 		"@types/node": "^22.10.6",
 		"autoprefixer": "^10.4.20",
-		"bits-ui": "^0.22.0",
+		"bits-ui": "0.22.0",
 		"clsx": "^2.1.1",
 		"eslint": "^9.7.0",
 		"eslint-config-prettier": "^9.1.0",
@@ -54,7 +54,7 @@
 		"@testing-library/user-event": "^14.6.1",
 		"dlx": "^0.2.1",
 		"jsdom": "^26.0.0",
-		"lucide-svelte": "^0.474.0",
+		"lucide-svelte": "^0.475.0",
 		"svelte-motion": "^0.12.2"
 	}
 }

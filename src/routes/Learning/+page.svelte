@@ -1,26 +1,39 @@
+<!-- src/App.svelte -->
 <script>
-  import * as Dialog from "$lib/components/ui/dialog";
-  import { fly } from "svelte/transition";
-
-  let isOpen = false;
+  import AppSelector from '$lib/components/AppSelector.svelte';
+  import BirdApp from '$lib/components/BirdApp.svelte';
+  import DogApp from '$lib/components/BirdApp.svelte';
+  import CatApp from '$lib/components/BirdApp.svelte';
+  let apps = [
+    { 
+      emoji: "🐦", 
+      where: { top: '10%', left: '10%' }, 
+      content: { 
+        title: "Bird App", 
+        description: "Welcome to the Bird App!",
+        component: BirdApp
+      } 
+    },
+    { 
+      emoji: "🐱", 
+      where: { top: '20%', left: '20%' }, 
+      content: { 
+        title: "Cat App", 
+        description: "Welcome to the Cat App!",
+        component: CatApp
+      } 
+    },
+    { 
+      emoji: "🐶", 
+      where: { top: '30%', left: '30%' }, 
+      content: { 
+        title: "Dog App", 
+        description: "Welcome to the Dog App!",
+        component: DogApp
+      } 
+    },
+    // Add more apps as needed
+  ];
 </script>
 
-<Dialog.Root bind:open={isOpen}>
-  <Dialog.Trigger>Open Dialog</Dialog.Trigger>
-  <Dialog.Portal>
-    <Dialog.Overlay />
-    {#if isOpen}
-      <div transition:fly={{ duration: 300, x: -10 }}>
-        <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>Dialog Title</Dialog.Title>
-            <Dialog.Description>
-              This is a description of the dialog content.
-            </Dialog.Description>
-          </Dialog.Header>
-          <!-- Additional dialog content goes here -->
-        </Dialog.Content>
-      </div>
-    {/if}
-  </Dialog.Portal>
-</Dialog.Root>
+<AppSelector {apps} />

@@ -99,7 +99,7 @@
 </script>
 
 {#if isBrowser}
-<nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+<nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20 sticky">
     <div class="container flex h-14 max-w-screen-2xl items-center justify-between">
         <!-- Left Section with Logo and Mobile Menu -->
         <div class="flex items-center w-full md:w-auto justify-between md:justify-start">

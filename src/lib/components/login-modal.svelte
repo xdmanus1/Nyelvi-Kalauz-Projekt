@@ -75,6 +75,7 @@
     </Dialog.Trigger>
     <Dialog.Content
         class="sm:max-w-[425px] w-full max-w-full rounded-xl overflow-hidden p-6"
+        transitionConfig={{ y: 100 }}
     >
         <!-- Wrapping the content with a container for height animation -->
         <div

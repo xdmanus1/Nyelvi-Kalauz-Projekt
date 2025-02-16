@@ -35,7 +35,7 @@
     async function handleSubmit2() {
         const { data, error } = await supabase.auth.updateUser({
             data: {
-                username: name,
+                username: name
             },
         });
         if (error) {

@@ -7,12 +7,18 @@
     import { goto } from "$app/navigation";
     import { toast } from "svelte-sonner";
     import { authStore } from '../components/stores/AuthStore';
+    import { fly, scale } from "svelte/transition";
+    import * as AlertDialog from "../components/ui/alert-dialog";
+	import { supabase } from "$lib/supabaseClient";
 
+    // Reactive variables
+    let user: import('@supabase/gotrue-js').User | null = null;
     let initials: string;
     let username: string;
 
     // Subscribe to authStore to get the current user
-    authStore.subscribe(({ user }) => {
+    authStore.subscribe(({ user: currentUser }) => {
+        user = currentUser;
         if (user) {
             username = user.user_metadata.username || '';
             initials = getInitials(user.email || user.id); // Use email or id if username is not available
@@ -46,6 +52,29 @@
     function profile() {
         goto("/Profile");
     }
+
+    // Alert Dialog State
+    let open = false;
+
+    async function handleUsernameChange() {
+        open = false;
+        await handleSubmit2();
+    }
+
+    async function handleSubmit2() {
+        const { data, error } = await supabase.auth.updateUser({
+            data: {
+                username: username,
+            },
+        });
+        if (error) {
+            console.error("Update username error:", error.message);
+            toast.error("Failed to update username. Please try again.");
+        } else {
+            console.log("Username updated successfully!", data);
+            toast.success("Username updated successfully!");
+        }
+    }
 </script>
 
 <DropdownMenu.Root>
@@ -60,7 +89,7 @@
             </Button>
         </div>
     </DropdownMenu.Trigger>
-    <DropdownMenu.Content class="rounded-[1.4vw]">
+    <DropdownMenu.Content class="rounded-[1.4vw]" transitionConfig={{ y: -45, duration: 300, start: 0.2 }}>
         <DropdownMenu.Group>
             <DropdownMenu.Item on:click={profile} class="cursor-pointer rounded-full transition duration-150">
                 <User class="mr-2 h-6 w-6" />
