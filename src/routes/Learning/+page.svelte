@@ -2,7 +2,7 @@
 <script>
   import AppSelector from '$lib/components/AppSelector.svelte';
   import BirdApp from '$lib/components/BirdApp.svelte';
-  import DogApp from '$lib/components/BirdApp.svelte';
+  import DogApp from '$lib/components/DogApp.svelte';
   import CatApp from '$lib/components/BirdApp.svelte';
   let apps = [
     { 

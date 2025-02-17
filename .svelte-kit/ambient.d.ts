@@ -48,7 +48,6 @@ declare module '$env/static/private' {
 	export const BROWSER: string;
 	export const npm_package_dependencies__supabase_supabase_js: string;
 	export const HOME: string;
-	export const OLDPWD: string;
 	export const npm_package_devDependencies_clsx: string;
 	export const TERM_PROGRAM_VERSION: string;
 	export const NVM_BIN: string;
@@ -197,7 +196,6 @@ declare module '$env/dynamic/private' {
 		BROWSER: string;
 		npm_package_dependencies__supabase_supabase_js: string;
 		HOME: string;
-		OLDPWD: string;
 		npm_package_devDependencies_clsx: string;
 		TERM_PROGRAM_VERSION: string;
 		NVM_BIN: string;

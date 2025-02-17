@@ -42,6 +42,7 @@
     background-color: white;
     color: black;
     z-index: 10;
+    overflow: hidden; 
   }
 </style>
 
@@ -63,9 +64,7 @@
         in:receive={{ key: app.emoji }}
         out:send={{ key: app.emoji }}
       >
-        <div class="app-content">
-          <h1>{app.content.title}</h1>
-          <p>{app.content.description}</p>
+        <div class="app-content overflow-hidden">
           <button on:click={closeAppHandler}>Close</button>
           <svelte:component this={app.content.component} />
         </div>
