@@ -9,7 +9,7 @@
   { id: 3, name: 'Carrot', category: 'Vegetable' },
   { id: 4, name: 'Broccoli', category: 'Vegetable' },
   { id: 5, name: 'Chicken', category: 'Meat' },
-  { id: 6, name: 'Beef', category: 'Meat' },
+  { id: 6, name: 'Beefs', category: 'Meat' },
 ];
     
   
