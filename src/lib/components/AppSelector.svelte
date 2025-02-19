@@ -1,7 +1,9 @@
 <!-- src/components/AppSelector.svelte -->
 <script lang="ts">
+	import { X } from "lucide-svelte";
   import { cubicInOut, expoIn, quintInOut } from "svelte/easing";
   import { crossfade } from "svelte/transition";
+	import Button from "./ui/button/button.svelte";
 
   export let apps: any = [];
   export let openApp = "";
@@ -39,10 +41,16 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
     color: black;
     z-index: 10;
     overflow: hidden; 
+  }
+  .outlined {
+    outline: 2px !important;
+        outline-style: solid !important;
+        outline-color: black !important;
   }
 </style>
 
@@ -59,13 +67,16 @@
         {app.emoji}
       </button>
     {:else}
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="app"
+        on:click={closeAppHandler}
         in:receive={{ key: app.emoji }}
         out:send={{ key: app.emoji }}
       >
-        <div class="app-content overflow-hidden">
-          <button on:click={closeAppHandler}>Close</button>
+        <div class="app-content overflow-hidden" on:click={(e) => e.stopPropagation()}>
+          <Button class="outlined p-4 border-4 h-auto absolute float-right font-extrabold left-[90%]" on:click={closeAppHandler}><X /></Button>
           <svelte:component this={app.content.component} />
         </div>
       </div>
