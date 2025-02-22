@@ -99,7 +99,7 @@
 </script>
 
 {#if isBrowser}
-<nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20 sticky">
+<nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20 sticky top-0">
     <div class="container flex h-14 max-w-screen-2xl items-center justify-between">
         <!-- Left Section with Logo and Mobile Menu -->
         <div class="flex items-center w-full md:w-auto justify-between md:justify-start">
@@ -212,7 +212,7 @@
                     <Dropdown/>
                 </Button>
             {:else}
-                <div class="py-20 w-full mt-14">
+                <div class="w-full mt-14">
                     <div class="border-2 border-black bg-white p-1 rounded-full">
                         <LoginModal on:login={handleLogin} />
                     </div>

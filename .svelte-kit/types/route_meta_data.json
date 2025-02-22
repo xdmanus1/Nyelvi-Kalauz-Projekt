@@ -3,9 +3,13 @@
 		"src/routes/+page.server.js"
 	],
 	"/Auth": [],
-	"/Learning": [],
+	"/Learning": [
+		"src/routes/Learning/+page.server.js"
+	],
 	"/Profile": [],
-	"/Quiz": [],
+	"/Quiz": [
+		"src/routes/Quiz/+page.server.js"
+	],
 	"/Test": [],
 	"/protected": [
 		"src/routes/protected/+page.server.ts"

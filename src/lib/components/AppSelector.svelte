@@ -4,10 +4,11 @@
   import { cubicInOut, expoIn, quintInOut } from "svelte/easing";
   import { crossfade } from "svelte/transition";
 	import Button from "./ui/button/button.svelte";
+  export let cards: never[] = [];
 
   export let apps: any = [];
   export let openApp = "";
-
+  
   const [send, receive] = crossfade({
     duration: 300,
   });
@@ -19,6 +20,8 @@
   function closeAppHandler() {
     openApp = "";
   }
+
+
 </script>
 
 <style>
@@ -41,7 +44,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.233);
     backdrop-filter: blur(10px);
     color: black;
     z-index: 10;
@@ -76,8 +79,8 @@
         out:send={{ key: app.emoji }}
       >
         <div class="app-content overflow-hidden" on:click={(e) => e.stopPropagation()}>
-          <Button class="outlined p-4 border-4 h-auto absolute float-right font-extrabold left-[90%]" on:click={closeAppHandler}><X /></Button>
-          <svelte:component this={app.content.component} />
+          <Button class="outlined p-4 border-4 h-auto absolute float-right font-extrabold left-[90%] top-[6rem]" on:click={closeAppHandler}><X /></Button>
+          <svelte:component this={app.content.component} {cards} />
         </div>
       </div>
     {/if}

@@ -1,9 +1,15 @@
-<!-- src/App.svelte -->
 <script>
+// @ts-nocheck
+
   import AppSelector from '$lib/components/AppSelector.svelte';
   import BirdApp from '$lib/components/BirdApp.svelte';
   import DogApp from '$lib/components/DogApp.svelte';
   import CatApp from '$lib/components/BirdApp.svelte';
+
+  // Instead of exporting an empty array, grab cards from the load function data.
+  export let data;
+  const { cards } = data;
+
   let apps = [
     { 
       emoji: "🐦", 
@@ -36,4 +42,14 @@
   ];
 </script>
 
-<AppSelector {apps} />
+<div class="budy">
+  Lorem, ipsum dolor sit amet consectetur adipisicing elit. Ullam ab, obcaecati deleniti blanditiis placeat dolor quos debitis neque iste repellendus facere quidem magnam sint commodi, deserunt, in eos maiores fugiat.
+  <AppSelector {apps} cards={cards} />
+</div>
+
+<style>
+  .budy{
+    background-image: url('$lib/components/map.png');
+    margin-top: -5.1rem;
+  }
+</style>

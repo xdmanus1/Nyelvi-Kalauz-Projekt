@@ -11,7 +11,7 @@
 </script>
 
 
-    <div class="min-h-60 w-60 test border-4 border-white parent flex hover:translate-x-[87%] right-[97%] absolute  bg-black text-white transition-all p-3 rounded-xl duration-300 overflow-hidden">
+    <div class="min-h-60 w-60 test border-4 border-white parent flex hover:translate-x-[87%] right-[97%] absolute z-20  bg-black text-white transition-all p-3 rounded-xl duration-300 overflow-hidden">
         <div class="yes w-full flex flex-col items-center justify-center content-center">
             <Label class="text-xl">Search</Label>
             <Input></Input>

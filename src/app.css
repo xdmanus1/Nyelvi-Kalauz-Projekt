@@ -87,9 +87,9 @@ body {
 
 /* app.css */
 .toast[data-type="error"] {
-	background-color: var(--error-bg) !important;
-	border-color: var(--error-border) !important;
-	color: var(--error-text) !important;
+  background-color: var(--error-bg) !important;
+  border-color: var(--error-border) !important;
+  color: var(--error-text) !important;
   border-radius: 10rem !important;
   font-size: 1rem !important;
   font-weight: 700 !important;
@@ -97,17 +97,24 @@ body {
 
 .toast[data-type="success"] {
   background-color: var(--success-bg) !important;
-	border-color: var(--success-border) !important;
-	color: var(--success-text) !important;
+  border-color: var(--success-border) !important;
+  color: var(--success-text) !important;
   border-radius: 10rem !important;
   font-size: 1rem !important;
   font-weight: 700 !important;
 }
 
 .toast[data-type="error"] .description {
-	color: var(--error-text) !important;
+  color: var(--error-text) !important;
 }
 
 .toast[data-type="success"] .description {
-	color: var(--success-text) !important;
+  color: var(--success-text) !important;
+}
+
+.japanese {
+  font-family: "M PLUS Rounded 1c", serif;
+  font-weight: 500;
+  font-size: large;
+  font-style: normal;
 }

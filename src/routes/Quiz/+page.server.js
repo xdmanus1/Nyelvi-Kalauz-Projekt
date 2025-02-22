@@ -1,16 +1,14 @@
-// src/routes/+page.server.js
+// src/routes/learning/+page.server.js
 import { supabase } from '$lib/supabaseClient';
 
 export async function load() {
-    // Query all fields from your table
     const { data, error } = await supabase
         .from('Cards for learning')
         .select('*');
 
     if (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching cards:', error);
         return { cards: [] };
     }
-
     return { cards: data ?? [] };
 }
