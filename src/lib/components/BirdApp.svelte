@@ -1,5 +1,4 @@
 <!-- src/components/BirdApp.svelte -->
-
 <script lang="ts">
   import { Motion } from "svelte-motion";
   import FilterComponent from '$lib/components/Filtercomponent.svelte';
@@ -18,9 +17,36 @@
   ];
   
   export let cards: string | any[] = [];
-console.log(cards);
-
-
+  console.log(cards);
+  
+  // Function to check if a character is Kanji
+  function isKanji(c: string) {
+    const code = c.charCodeAt(0);
+    return code >= 0x4e00 && code <= 0x9faf; // Unicode range for Kanji
+  }
+  
+  // Function to extract furigana for a given Kanji
+  function getFuriganaForKanji(japanese: string, furigana: string | null | undefined): Record<string, string> {
+    furigana = furigana ?? "";
+    const furiganaMap: Record<string, string> = {};
+    let furiganaIndex = 0;
+  
+    for (let i = 0; i < japanese.length; i++) {
+      const char = japanese[i];
+      if (isKanji(char)) {
+        let end = i + 1;
+        while (end < japanese.length && !isKanji(japanese[end])) {
+          end++;
+        }
+        const segmentLength = end - i;
+        const kanaSegment = furigana.slice(furiganaIndex, furiganaIndex + segmentLength);
+        furiganaMap[char] = kanaSegment;
+        furiganaIndex += segmentLength;
+      }
+    }
+    return furiganaMap;
+  }
+  
   const allItems = [
     { id: 1, name: 'Item 1', category: 'option1' },
     { id: 2, name: 'Item 2', category: 'option2' },
@@ -49,22 +75,22 @@ console.log(cards);
     { id: 26, name: 'Item 6', category: 'option3' },
     { id: 27, name: 'Item 6', category: 'option3' },
   ];
-
+  
   let checkedState: boolean[] = filterOptions.map(() => false);
   let filteredItems = allItems;
-
+  
   function handleCheckboxChange(index: number, checked: boolean) {
     checkedState[index] = checked;
     const selectedFilters = filterOptions
       .filter((_, idx) => checkedState[idx])
       .map(option => option.value);
-
+  
     if (selectedFilters.length === 0) {
       filteredItems = allItems;
     } else {
       filteredItems = allItems.filter(item => selectedFilters.includes(item.category));
     }
-
+  
     console.log(`Filtered Items:`, filteredItems);
   }
 </script>
@@ -111,34 +137,47 @@ console.log(cards);
   </div>
   <div class="overflow-hidden rounded-xl mt-16">
     <div id="style-1" class="flex-wrap h-[80vh] w-[77vw] overflow-y-auto rounded-xl bg-[#000000] p-8 max-w-[80rem] border">
-      <h2 class="text-2xl font-bold mb-4">Filtered Items</h2>
+      <h2 class="text-2xl font-bold mb-4">Filtered Items bird</h2>
       {#if cards.length > 0}
         <div class="grid flex-wrap gap-4 items-center justify-center content-center grid-cols-4">
           {#each cards as card}
             <MagicCard
-              class="min-h-60 flex-col items-center justify-center shadow-[0_10px_35px_rgba(0,0,0,0.25)]  whitespace-nowrap text-4xl group hover:border-[#2effbd9e] transition-all duration-300 hover:shadow-[#2effbd9e]/40"
+              class="min-h-60 flex-col items-center justify-center shadow-[0_10px_35px_rgba(0,0,0,0.25)] whitespace-nowrap text-4xl group hover:border-[#2effbd9e] transition-all duration-300 hover:shadow-[#2effbd9e]/40"
               gradientColor="#043634"
               gradientSize={300}
               animin={{ duration: 500, start: 0.7 }}
               animout={{ duration: 500, start: 0.7 }}
             >
-            <div class="justify-center items-center flex gap-1.5">
-              {#if card.Icon}
-                <img src={card.Icon} alt="Icon" width="80" />
-              {/if}
-            </div>
-              <div class="group-hover:text-[#2EFFBD] transition-all duration-500 flex gap-1.5 justify-center items-center font-semibold text-lg">
-                <p><strong>Japanese:</strong> {card.japanese}</p>
-              </div>
-              <div class="group-hover:text-[#2EFFBD] transition-all duration-500 flex gap-1.5 justify-center items-center font-semibold text-lg">
-                  <p><strong>Phonetic:</strong> {card.phonetic}</p> 
-              </div>
-              <div class="group-hover:text-[#2EFFBD] transition-all duration-500 flex gap-1.5 justify-center items-center font-semibold text-lg">
-                  <p><strong>English:</strong> {card.english}</p> 
-            </div>
-            {#if card.audioUrl}
-                  <audio controls src={card.audioUrl}></audio>
+              <div class="justify-center items-center flex gap-1.5">
+                {#if card.Icon}
+                  <img src={card.Icon} alt="Icon" width="80" />
                 {/if}
+              </div>
+              <div class="group-hover:text-[#2EFFBD] transition-all duration-500 flex gap-1.5 justify-center items-center font-semibold text-lg">
+                <p><strong>Japanese:</strong>
+                  {#each card.japanese.split('') as char}
+                    {#if isKanji(char)}
+                      <ruby>
+                        {char}
+                        {#if card.furigana}
+                          <rt>{getFuriganaForKanji(card.japanese, card.furigana)[char]}</rt>
+                        {/if}
+                      </ruby>
+                    {:else}
+                      {char}
+                    {/if}
+                  {/each}
+                </p>
+              </div>
+              <div class="group-hover:text-[#2EFFBD] transition-all duration-500 flex gap-1.5 justify-center items-center font-semibold text-lg">
+                <p><strong>Phonetic:</strong> {card.phonetic}</p>
+              </div>
+              <div class="group-hover:text-[#2EFFBD] transition-all duration-500 flex gap-1.5 justify-center items-center font-semibold text-lg">
+                <p><strong>English:</strong> {card.english}</p>
+              </div>
+              {#if card.audioUrl}
+                <audio controls src={card.audioUrl}></audio>
+              {/if}
             </MagicCard>
           {/each}
         </div>

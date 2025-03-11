@@ -44,8 +44,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.233);
-    backdrop-filter: blur(10px);
+    background-color: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(2.5px);
     color: black;
     z-index: 10;
     overflow: hidden; 
@@ -67,7 +67,8 @@
         in:receive={{ key: app.emoji }}
         out:send={{ key: app.emoji }}
       >
-        {app.emoji}
+        
+      <img src="{app.emoji}" alt="" class="h-12 w-12 text-white">
       </button>
     {:else}
       <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -83,6 +84,6 @@
           <svelte:component this={app.content.component} {cards} />
         </div>
       </div>
-    {/if}
+      {/if}
   {/each}
 </div>

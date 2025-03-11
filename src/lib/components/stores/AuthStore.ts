@@ -1,4 +1,3 @@
-// src/stores/authStore.ts
 import { writable, type Writable } from 'svelte/store';
 import { supabase } from '$lib/supabaseClient';
 import type { User, Session } from '@supabase/gotrue-js';
@@ -6,6 +5,7 @@ import type { AuthError } from '@supabase/auth-js';
 
 interface AuthState {
     user: User | null;
+    betaFeatures: boolean | null;
 }
 
 interface AuthStore extends Writable<AuthState> {
@@ -16,7 +16,10 @@ interface AuthStore extends Writable<AuthState> {
 }
 
 function createAuthStore(): AuthStore {
-    const { subscribe, set, update } = writable<AuthState>({ user: null });
+    const { subscribe, set, update } = writable<AuthState>({
+        user: null,
+        betaFeatures: null
+    });
 
     return {
         subscribe,
@@ -28,14 +31,17 @@ function createAuthStore(): AuthStore {
             } = await supabase.auth.getSession();
 
             if (session?.user) {
-                set({ user: session.user });
+                const betaFeatures = session.user.app_metadata?.beta_features ?? null;
+                set({ user: session.user, betaFeatures });
             }
 
-            supabase.auth.onAuthStateChange((event, session: Session | null) => {
+            supabase.auth.onAuthStateChange((event, session) => {
                 if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-                    set({ user: session?.user ?? null });
+                    const user = session?.user ?? null;
+                    const betaFeatures = user?.app_metadata?.beta_features ?? null;
+                    set({ user, betaFeatures });
                 } else if (event === 'SIGNED_OUT') {
-                    set({ user: null });
+                    set({ user: null, betaFeatures: null });
                 }
             });
         },
@@ -51,7 +57,8 @@ function createAuthStore(): AuthStore {
             }
 
             if (data.user) {
-                set({ user: data.user });
+                const betaFeatures = data.user.app_metadata?.beta_features ?? null;
+                set({ user: data.user, betaFeatures });
             }
 
             return { user: data.user, error: null };
@@ -73,7 +80,8 @@ function createAuthStore(): AuthStore {
             }
 
             if (data.user) {
-                set({ user: data.user });
+                const betaFeatures = data.user.app_metadata?.beta_features ?? null;
+                set({ user: data.user, betaFeatures });
             }
 
             return { user: data.user, error: null };
@@ -86,7 +94,7 @@ function createAuthStore(): AuthStore {
                 return { error };
             }
 
-            set({ user: null });
+            set({ user: null, betaFeatures: null });
             return { error: null };
         }
     };
