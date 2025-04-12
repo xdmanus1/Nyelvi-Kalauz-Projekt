@@ -102,8 +102,8 @@
 <nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20 sticky top-0">
     <div class="container flex h-14 max-w-screen-2xl items-center justify-between">
         <!-- Left Section with Logo and Mobile Menu -->
-        <div class="flex items-center w-full md:w-auto justify-between md:justify-start">
-            <div class="max-md:hidden w-full mt-14">
+        <div class="flex items-center w-full lg:w-auto justify-between lg:justify-start">
+            <div class="max-lg:hidden w-full mt-14">
                 <div class="border-2 border-black bg-white p-1 rounded-full">
                     <a
                         href="/"
@@ -113,12 +113,12 @@
                     </a>
                 </div>
             </div>
-            <a href="/" class="md:hidden flex items-center space-x-2">
+            <a href="/" class="lg:hidden flex items-center space-x-2">
                 <span class="font-bold text-md">YourBrand</span>
             </a>
 
             <!-- Mobile Menu Button -->
-            <div class="md:hidden">
+            <div class="lg:hidden">
                 <Sheet>
                     <SheetTrigger>
                         <Button variant="ghost" size="icon">
@@ -165,7 +165,7 @@
         </div>
 
         <!-- Desktop Navigation Links -->
-        <div class="hidden md:flex flex-1 items-center justify-center space-x-2">
+        <div class="hidden lg:flex flex-1 items-center justify-center space-x-2">
             <div class="w-full mt-14">
                 <ul
                     on:mouseleave={() => {
@@ -206,7 +206,7 @@
         </div>
 
         <!-- Auth Section -->
-        <div class="hidden md:flex items-center justify-end space-x-2">
+        <div class="hidden lg:flex items-center justify-end space-x-2">
             {#if user}
                 <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full mt-14 mr-11">
                     <Dropdown/>

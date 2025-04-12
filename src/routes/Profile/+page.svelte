@@ -104,6 +104,31 @@
         console.log("Current beta state:", !beta);
     };
 
+    import { Languages } from 'lucide-svelte';
+
+// Add these to the script section
+const languagePairs = [
+    { from: 'English', to: 'Japanese', unable: false },
+    { from: 'Japanese', to: 'English', unable: true },
+    { from: 'English', to: 'Hungarian', unable: true},
+    { from: 'Hungarian', to: 'English', unable: true },
+];
+
+let selectedPair = languagePairs[0];
+
+// Add this function
+async function handleLanguageSelection() {
+    try {
+        await authStore.updateUserLanguage(selectedPair);
+        if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('selectedLanguage', JSON.stringify(selectedPair));
+        }
+        toast.success("Language preferences updated!");
+    } catch (error) {
+        toast.error("Failed to update language preferences");
+    }
+}
+
     </script>
     
     <!-- {#if user} -->
@@ -144,7 +169,40 @@
     </form>
     </Card.Content>
     </Card.Root>
-    
+    <Card.Root>
+        <Card.Header>
+            <Card.Title>Language Preferences</Card.Title>
+            <Card.Description>Choose your learning language pair</Card.Description>
+        </Card.Header>
+        <Card.Content class="space-y-6">
+            <div class="flex items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <Label>Learning Languages</Label>
+                    <p class="text-sm text-muted-foreground">
+                        Select your preferred language pair
+                    </p>
+                </div>
+                <div class="flex-1 max-w-[200px]">
+                    <select 
+                        bind:value={selectedPair}
+                        class="w-full p-2 rounded-full border border-input bg-background"
+                    >
+                        {#each languagePairs as pair}
+                            {#if pair.unable}
+                            <option disabled value={pair}>{pair.from} → {pair.to}</option>
+                            {:else}
+                            <option value={pair}>{pair.from} → {pair.to}</option>
+                            {/if}
+                        {/each}
+                    </select>
+                </div>
+                <Button variant="outline" on:click={handleLanguageSelection}>
+                    <Languages class="w-4 h-4 mr-2" />
+                    Update
+                </Button>
+            </div>
+        </Card.Content>
+    </Card.Root>
     <!-- Beta Features -->
     <Card.Root>
     <Card.Header>
@@ -166,7 +224,9 @@
     />
     </div>
     </Card.Content>
-    </Card.Root><!--
+    </Card.Root>
+    
+    <!--
     <Card.Root class="border-destructive">
     <Card.Header>
     <Card.Title class="text-destructive">Danger Zone</Card.Title>

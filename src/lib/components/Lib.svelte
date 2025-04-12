@@ -29,9 +29,9 @@
 
   // --- Filter & Search State ---
   const filterOptions = [
-    { label: 'Goods', value: 'Goods' },
-    { label: 'Phrases', value: 'Phrase' },
-    { label: 'Shop Concepts', value: 'Shop Concepts' },
+    { label: 'Concepts / Services', value: 'Concepts/Services' },
+    { label: 'Items', value: 'Items' },
+    { label: 'Places / Sections', value: 'Places/Sections' },
   ];
 
   let checkedState: boolean[] = filterOptions.map(() => false);
@@ -43,7 +43,7 @@
     let filtered = cards;
     // Ensure cards array is initialized before filtering
     if (cards && cards.length > 0) {
-        filtered = filtered.filter(card => card.Type === "shop");
+        filtered = filtered.filter(card => card.Type === "library");
         const selectedFilters = filterOptions
           .filter((_, idx) => checkedState[idx])
           .map(option => option.value);
@@ -345,7 +345,7 @@
   <div class="overflow-hidden rounded-xl mt-16 max-lg:mt-[2.9rem]">
      <!-- Using original classes for the scrollable area -->
     <div id="style-1" class="a1480 flex-wrap h-screen lg:h-[80vh] w-[77vw] md:w-[90vw] sm:w-[95vw] overflow-y-auto rounded-xl bg-[#000000] p-8 max-w-[80rem] border">
-      <h2 class="text-4xl font-bold mb-4 text-center sm:text-3xl">Shop</h2>
+      <h2 class="text-4xl font-bold mb-4 text-center sm:text-3xl">library</h2>
 
       {#if displayedCards.length > 0}
         <!-- Using original grid classes -->

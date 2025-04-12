@@ -4,7 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "vite dev --host",
 		"build": "vite build",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -55,9 +55,11 @@
 		"@testing-library/user-event": "^14.6.1",
 		"d3": "^7.9.0",
 		"dlx": "^0.2.1",
+		"furigana": "^0.19.3",
 		"jsdom": "^26.0.0",
 		"lucide-svelte": "^0.475.0",
 		"svelte-motion": "^0.12.2",
+		"wanakana": "^5.3.1",
 		"zod": "^3.24.2"
 	}
 }

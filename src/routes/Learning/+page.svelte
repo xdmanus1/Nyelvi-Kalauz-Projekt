@@ -1,781 +1,446 @@
 <script lang="ts">
   // @ts-nocheck
-  import AppSelector from '$lib/components/AppSelector.svelte';
-  import BirdApp from '$lib/components/BirdApp.svelte';
-  import DogApp from '$lib/components/DogApp.svelte';
-  import ShopApp from '$lib/components/Shop.svelte'; 
-  import { onMount } from 'svelte';
-  
-  // Export data from the load function
-  export let data;
-  const { cards } = data;
-  
-  interface AppPosition {
-    top: string;
-    left: string;
-  }
-  
-  interface AppContent {
-    title: string;
-    description: string;
-    component: any;
-  }
-  
-  interface App {
-    emoji: string;
-    where: AppPosition;
-    content: AppContent;
-    id?: string;
-    position?: {
-      top: number;
-      left: number;
-    };
-    centerPosition?: {  // Added for storing the center position
-      top: number;
-      left: number;
-    };
-    element?: HTMLElement; // Store the DOM element reference
-    isEdge?: boolean;
-    width?: number; // Store element width
-    height?: number; // Store element height
-    connections?: number; // Track number of connections
-  }
-  
-  // Add ids to the apps for reference when creating connections
-  let apps: App[] = [
-    {
-      id: 'bird',
-      emoji: "/store-svgrepo-com.svg",
-      where: { top: '50%', left: '10%' },
-      content: {
-        title: "Bird App",
-        description: "Welcome to the Bird App!",
-        component: BirdApp
-      }
-    },
-    {
-      id: 'shop',
-      emoji: "/download.svg",
-      where: { top: '60%', left: '90%' },
-      content: {
-        title: "Shop",
-        description: "Shop",
-        component: ShopApp
-      }
-    },
-    {
-      id: 'dog',
-      emoji: "/favicon.png",
-      where: { top: '20%', left: '30%' },
-      content: {
-        title: "Dog App",
-        description: "Welcome to the Dog App!",
-        component: DogApp
-      }
-    },
-    {
-      id: 'bird2',
-      emoji: "/favicon.png",
-      where: { top: '20%', left: '50%' },
-      content: {
-        title: "Bird App",
-        description: "Welcome to the Bird App!",
-        component: DogApp
-      }
-    },
-    {
-      id: 'fish',
-      emoji: "/favicon.png",
-      where: { top: '60%', left: '20%' },
-      content: {
-        title: "Fish App",
-        description: "Dive into the Fish App!",
-        component: DogApp
-      }
-    },
-    {
-      id: 'turtle',
-      emoji: "/favicon.png",
-      where: { top: '40%', left: '70%' },
-      content: {
-        title: "Turtle App",
-        description: "Slow and steady in the Turtle App!",
-        component: DogApp
-      }
-    },
-    {
-      id: 'rabbit',
-      emoji: "/favicon.png",
-      where: { top: '30%', left: '10%' },
-      content: {
-        title: "Rabbit App",
-        description: "Hop into the Rabbit App!",
-        component: DogApp
-      }
-    }
-    // Add more apps as needed
-  ];
-  
-  interface Connection {
-    from: string;
-    to: string;
-    path?: string;
-    distance?: number;
-    importance?: number; // Added to determine road width
-  }
-  
-  // Store the connections
-  let connections: Connection[] = [];
-  let containerWidth = 0;
-  let containerHeight = 0;
-  let resizeObserver: ResizeObserver | null = null;
-  
-  // Calculate the absolute position of an app based on its percentage values
-  function calculateAbsolutePosition(app: App, containerWidth: number, containerHeight: number) {
-    const topPercent = parseFloat(app.where.top);
-    const leftPercent = parseFloat(app.where.left);
-    
-    return {
-      top: (containerHeight * topPercent) / 100,
-      left: (containerWidth * leftPercent) / 100
-    };
-  }
-  
-  // Calculate distance between two apps based on their center positions
-  function calculateDistance(app1: App, app2: App): number {
-    if (!app1.centerPosition || !app2.centerPosition) return Infinity;
-    
-    const dx = app1.centerPosition.left - app2.centerPosition.left;
-    const dy = app1.centerPosition.top - app2.centerPosition.top;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-  
-  // Check if an app is on the edge of the screen
-  function isEdgeApp(app: App, containerWidth: number, containerHeight: number): boolean {
-    if (!app.position) return false;
-    
-    const edgeThreshold = 0.15; // 15% from any edge is considered an edge
-    
-    return (
-      app.position.left < containerWidth * edgeThreshold || 
-      app.position.left > containerWidth * (1 - edgeThreshold) || 
-      app.position.top < containerHeight * edgeThreshold || 
-      app.position.top > containerHeight * (1 - edgeThreshold)
-    );
-  }
-  
-  // Improved line intersection detection
-  function doLinesIntersect(line1Start, line1End, line2Start, line2End) {
-    // CCW function to determine counter-clockwise orientation
-    function ccw(A, B, C) {
-      return (C.top - A.top) * (B.left - A.left) > (B.top - A.top) * (C.left - A.left);
-    }
-    
-    // Check if the line segments intersect
-    return ccw(line1Start, line2Start, line2End) !== ccw(line1End, line2Start, line2End) && 
-           ccw(line1Start, line1End, line2Start) !== ccw(line1Start, line1End, line2End);
-  }
-  function generateRoadPath(fromApp: App, toApp: App): string {
-    if (!fromApp.centerPosition || !toApp.centerPosition) return '';
-    
-    const fromPos = fromApp.centerPosition;
-    const toPos = toApp.centerPosition;
-    
-    // Calculate vector from source to target
-    const dx = toPos.left - fromPos.left;
-    const dy = toPos.top - fromPos.top;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    // For very short distances, use a straight line to avoid weird curves
-    if (distance < 50) {
-      return `M ${fromPos.left} ${fromPos.top} L ${toPos.left} ${toPos.top}`;
-    }
-    
-    // Create a natural curve that doesn't bend too much
-    // The control point is perpendicular to the line between points
-    const perpX = -dy / distance * (distance * 0.1); // 10% of distance for curve height
-    const perpY = dx / distance * (distance * 0.1);
-    
-    const controlX = (fromPos.left + toPos.left) / 2 + perpX;
-    const controlY = (fromPos.top + toPos.top) / 2 + perpY;
-    
-    // Create a quadratic curve path
-    return `M ${fromPos.left} ${fromPos.top} Q ${controlX} ${controlY}, ${toPos.left} ${toPos.top}`;
-  }
-  
-  // Updated onMount code to ensure we get accurate positions
-  onMount(() => {
-    const container = document.querySelector('.budy');
-    if (container) {
-      // Initial setup
-      containerWidth = container.clientWidth;
-      containerHeight = container.clientHeight;
-      
-      // Calculate absolute positions and identify edge apps
-      apps = apps.map(app => {
-        const position = calculateAbsolutePosition(app, containerWidth, containerHeight);
-        const isEdge = isEdgeApp(app, containerWidth, containerHeight);
-        return { ...app, position, isEdge, connections: 0 };
-      });
-      
-      // Set up app center positions with improved timing
-      setupAppCenterPositions();
-      
-      // Add window resize handling to reposition everything when the window size changes
-      const handleResize = () => {
-        if (container) {
-          containerWidth = container.clientWidth;
-          containerHeight = container.clientHeight;
-          
-          // Recalculate positions
-          apps = apps.map(app => {
-            const position = calculateAbsolutePosition(app, containerWidth, containerHeight);
-            const isEdge = isEdgeApp(app, containerWidth, containerHeight);
-            return { ...app, position, isEdge, connections: 0, centerPosition: undefined, element: undefined };
-          });
-          
-          // Reestablish center positions and connections
-          setupAppCenterPositions();
-        }
-      };
-      
-      window.addEventListener('resize', handleResize);
-      
-      // Clean up event listener on component destroy
-      return () => {
-        window.removeEventListener('resize', handleResize);
-      };
-    }
-  });
-  
-  // Improved function to check if a connection would cross existing connections
-  function wouldCrossExistingConnections(
-    fromApp: App,
-    toApp: App,
-    existingConnections: Connection[],
-    appMap: Map<string, App>
-  ): boolean {
-    if (!fromApp.centerPosition || !toApp.centerPosition) return true;
-    
-    // For simplicity, we'll use straight lines to check intersections
-    for (const conn of existingConnections) {
-      // Skip if this connection shares an endpoint with our new connection
-      if (conn.from === fromApp.id || conn.from === toApp.id || 
-          conn.to === fromApp.id || conn.to === toApp.id) {
-        continue;
-      }
-      
-      const connFromApp = appMap.get(conn.from);
-      const connToApp = appMap.get(conn.to);
-      
-      if (!connFromApp?.centerPosition || !connToApp?.centerPosition) continue;
-      
-      // Check if the straight line segments intersect
-      if (doLinesIntersect(
-        fromApp.centerPosition,
-        toApp.centerPosition,
-        connFromApp.centerPosition,
-        connToApp.centerPosition
-      )) {
-        return true; // Would cross
-      }
-    }
-    
-    return false; // No crossing
-  }
-  
-  // New function to determine if a node is isolated (has no close neighbors)
-  function isIsolatedNode(app: App, apps: App[], maxDistance: number): boolean {
-    for (const otherApp of apps) {
-      if (app.id === otherApp.id) continue;
-      
-      const distance = calculateDistance(app, otherApp);
-      if (distance <= maxDistance) {
-        return false; // Has at least one close neighbor
-      }
-    }
-    return true; // No close neighbors
-  }
-  
-  // Improved algorithm to create a network with more connections
-  function createNetworkGraph(apps: App[]): Connection[] {
-    if (apps.length <= 1) return [];
-    
-    // Initialize all apps with 0 connections
-    apps.forEach(app => {
-      app.connections = 0;
-    });
-    
-    // Map for quick app lookup by ID
-    const appMap = new Map<string, App>();
-    for (const app of apps) {
-      appMap.set(app.id, app);
-    }
-    
-    // Initialize all potential connections
-    const potentialConnections: Connection[] = [];
-    
-    for (let i = 0; i < apps.length; i++) {
-      for (let j = i + 1; j < apps.length; j++) {
-        const distance = calculateDistance(apps[i], apps[j]);
-        potentialConnections.push({
-          from: apps[i].id,
-          to: apps[j].id,
-          distance: distance,
-          // Importance will determine road width - shorter connections are more important
-          importance: 1 / (distance + 1)
-        });
-      }
-    }
-    
-    // Sort connections by distance (shortest first)
-    potentialConnections.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
-    
-    // Constants for network design - scaled based on container size
-    const scaleFactor = Math.min(containerWidth, containerHeight) / 1000;
-    const BASE_ISOLATION_DISTANCE = 200;
-    const BASE_MAX_DISTANCE_LIMIT = 300;
-    
-    // Scaled constants
-    const ISOLATION_DISTANCE = BASE_ISOLATION_DISTANCE * scaleFactor;
-    const MAX_DISTANCE_LIMIT = BASE_MAX_DISTANCE_LIMIT * scaleFactor;
-    
-    // Fixed constants
-    const MAX_CONNECTIONS_NORMAL = 5;  // Maximum connections for regular nodes
-    const MAX_CONNECTIONS_EDGE = 3;    // Maximum connections for edge nodes
-    
-    // Implement a proper Minimum Spanning Tree (Kruskal's algorithm)
-    const finalConnections: Connection[] = [];
-    const connectedSets: Set<string>[] = [];
-    
-    // First ensure network connectivity with MST
-    for (const conn of potentialConnections) {
-      // Find sets containing the endpoints
-      let fromSetIndex = -1;
-      let toSetIndex = -1;
-      
-      for (let i = 0; i < connectedSets.length; i++) {
-        if (connectedSets[i].has(conn.from)) fromSetIndex = i;
-        if (connectedSets[i].has(conn.to)) toSetIndex = i;
-      }
-      
-      // Both nodes already in the same set - adding this edge would create a cycle
-      if (fromSetIndex !== -1 && fromSetIndex === toSetIndex) {
-        continue;
-      }
-      
-      // Check if this connection would cross any existing connections
-      const fromApp = appMap.get(conn.from);
-      const toApp = appMap.get(conn.to);
-      
-      if (wouldCrossExistingConnections(fromApp, toApp, finalConnections, appMap)) {
-        continue; // Skip if it would create a crossing
-      }
-      
-      // Add the connection
-      finalConnections.push(conn);
-      
-      // Increment connection count for the apps
-      if (fromApp) fromApp.connections = (fromApp.connections || 0) + 1;
-      if (toApp) toApp.connections = (toApp.connections || 0) + 1;
-      
-      // Update connected sets
-      if (fromSetIndex === -1 && toSetIndex === -1) {
-        // Both nodes not in any set yet
-        connectedSets.push(new Set([conn.from, conn.to]));
-      } else if (fromSetIndex === -1) {
-        // Add 'from' node to 'to' node's set
-        connectedSets[toSetIndex].add(conn.from);
-      } else if (toSetIndex === -1) {
-        // Add 'to' node to 'from' node's set
-        connectedSets[fromSetIndex].add(conn.to);
-      } else {
-        // Merge the two sets
-        for (const node of connectedSets[toSetIndex]) {
-          connectedSets[fromSetIndex].add(node);
-        }
-        connectedSets.splice(toSetIndex, 1);
-      }
-    }
-    
-    // Check for isolated nodes and ensure they connect to their nearest neighbor
-    for (const app of apps) {
-      if (app.connections === 0 || isIsolatedNode(app, apps, ISOLATION_DISTANCE)) {
-        // Find nearest neighbor
-        let nearestApp = null;
-        let minDistance = Infinity;
-        
-        for (const otherApp of apps) {
-          if (app.id === otherApp.id) continue;
-          
-          const distance = calculateDistance(app, otherApp);
-          if (distance < minDistance) {
-            // Check if this connection would cross existing ones
-            if (!wouldCrossExistingConnections(app, otherApp, finalConnections, appMap)) {
-              minDistance = distance;
-              nearestApp = otherApp;
-            }
-          }
-        }
-        
-        if (nearestApp) {
-          // Add connection to nearest neighbor if not already connected
-          const alreadyConnected = finalConnections.some(conn => 
-            (conn.from === app.id && conn.to === nearestApp.id) || 
-            (conn.from === nearestApp.id && conn.to === app.id)
-          );
-          
-          if (!alreadyConnected) {
-            finalConnections.push({
-              from: app.id,
-              to: nearestApp.id,
-              distance: minDistance,
-              importance: 1 / (minDistance + 1) * 1.5 // Higher importance for isolated node connections
-            });
-            
-            // Update connection counts
-            app.connections = (app.connections || 0) + 1;
-            nearestApp.connections = (nearestApp.connections || 0) + 1;
-          }
-        }
-      }
-    }
-    
-    // Add additional connections to create a more connected network
-    for (const conn of potentialConnections) {
-      // Skip if this connection is already added
-      if (finalConnections.some(c => 
-        (c.from === conn.from && c.to === conn.to) || 
-        (c.from === conn.to && c.to === conn.from)
-      )) {
-        continue;
-      }
-      
-      // Skip if distance is too great
-      if (conn.distance > MAX_DISTANCE_LIMIT) {
-        continue;
-      }
-      
-      const fromApp = appMap.get(conn.from);
-      const toApp = appMap.get(conn.to);
-      
-      if (!fromApp || !toApp) continue;
-      
-      // Skip if it would create a crossing
-      if (wouldCrossExistingConnections(fromApp, toApp, finalConnections, appMap)) {
-        continue;
-      }
-      
-      // Limit the number of connections per app based on position
-      const fromMaxConn = fromApp.isEdge ? MAX_CONNECTIONS_EDGE : MAX_CONNECTIONS_NORMAL;
-      const toMaxConn = toApp.isEdge ? MAX_CONNECTIONS_EDGE : MAX_CONNECTIONS_NORMAL;
-      
-      if (fromApp.connections < fromMaxConn && toApp.connections < toMaxConn) {
-        finalConnections.push(conn);
-        
-        // Update connection counts
-        fromApp.connections += 1;
-        toApp.connections += 1;
-      }
-    }
-    
-    return finalConnections;
-  }
-  // Function to find app elements and calculate their center positions
-  function findAppElementsAndSetCenters() {
-    // Default app size if we can't find the actual element
-    const defaultAppSize = { width: 50, height: 50 };
-  
-    // Get the container element and its bounding rectangle
-    const container = document.querySelector('.budy');
-    if (!container) return false;
-    const containerRect = container.getBoundingClientRect();
-    containerWidth = containerRect.width;
-    containerHeight = containerRect.height;
-  
-    // Find all app elements in the DOM
-    const appElements = document.querySelectorAll('.app-selector-item');
-    
-    if (appElements.length === 0) return false;
-    
-    // Create a map of elements by position for more accurate matching
-    const elementPositionMap = new Map();
-    
-    appElements.forEach(element => {
-      const rect = element.getBoundingClientRect();
-      const relativeLeft = rect.left - containerRect.left;
-      const relativeTop = rect.top - containerRect.top;
-      
-      // Store by position string
-      elementPositionMap.set(`${relativeLeft.toFixed(0)},${relativeTop.toFixed(0)}`, {
-        element,
-        rect,
-        center: {
-          left: relativeLeft + rect.width / 2,
-          top: relativeTop + rect.height / 2
-        }
-      });
-    });
-    
-    // Match DOM elements to our app objects
-    let allMatched = true;
-    apps.forEach(app => {
-      if (!app.position) {
-        // Calculate absolute position if not already done
-        app.position = calculateAbsolutePosition(app, containerWidth, containerHeight);
-        app.isEdge = isEdgeApp(app, containerWidth, containerHeight);
-      }
-      
-      // Try to find the element closest to the calculated position
-      let closestElement = null;
-      let minDistance = Infinity;
-      
-      for (const [_, data] of elementPositionMap.entries()) {
-        const distance = Math.sqrt(
-          Math.pow(data.center.left - app.position.left, 2) + 
-          Math.pow(data.center.top - app.position.top, 2)
-        );
-        
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestElement = data;
-        }
-      }
-      
-      if (closestElement && minDistance < 100) { // Use a reasonable threshold
-        // Remove this element from the map so it's not matched again
-        elementPositionMap.delete(`${closestElement.center.left.toFixed(0)},${closestElement.center.top.toFixed(0)}`);
-        
-        // Store the element reference and its size
-        app.element = closestElement.element;
-        app.width = closestElement.rect.width;
-        app.height = closestElement.rect.height;
-        
-        // Store the center position - this is key for proper connection placement
-        app.centerPosition = {
-          left: closestElement.center.left,
-          top: closestElement.center.top
-        };
-      } else {
-        // If no matching element found, use the calculated position
-        app.width = defaultAppSize.width;
-        app.height = defaultAppSize.height;
-        app.centerPosition = {
-          left: app.position.left + defaultAppSize.width / 2,
-          top: app.position.top + defaultAppSize.height / 2
-        };
-        allMatched = false;
-      }
-    });
-    
-    return allMatched;
-  }
-  
-  // Function to generate connections once we have center positions
-  function generateConnections() {
-    // Fix any duplicate IDs
-    const appIds = new Set();
-    apps.forEach((app, index) => {
-      if (appIds.has(app.id)) {
-        app.id = `${app.id}_${index}`;
-      }
-      appIds.add(app.id);
-    });
-    
-    // Create network graph connections (more connected network)
-    connections = createNetworkGraph(apps);
-    
-    // Generate road paths for each connection
-    connections = connections.map(conn => {
-      const fromApp = apps.find(app => app.id === conn.from);
-      const toApp = apps.find(app => app.id === conn.to);
-      
-      if (fromApp && toApp) {
-        return {
-          ...conn,
-          path: generateRoadPath(fromApp, toApp)
-        };
-      }
-      return conn;
-    });
-    
-    // Force a refresh
-    connections = [...connections];
-  }
-  
-  // Set up viewport sizing and rendering based on current screen size
-  function updateLayoutAndRender() {
-    const container = document.querySelector('.budy');
-    if (!container) return;
-    
-    // Get current container dimensions
-    containerWidth = container.clientWidth;
-    containerHeight = container.clientHeight;
-    
-    // Scale road width based on container size
-    const scaleFactor = Math.min(containerWidth, containerHeight) / 1000;
-    
-    // Calculate absolute positions and identify edge apps
-    apps = apps.map(app => {
-      const position = calculateAbsolutePosition(app, containerWidth, containerHeight);
-      const isEdge = isEdgeApp(app, containerWidth, containerHeight);
-      return { ...app, position, isEdge, connections: 0 };
-    });
-    
-    // Setup center positions and generate connections
-    findAppElementsAndSetCenters();
-    generateConnections();
-  }
-  
-  function setupAppCenterPositions() {
-    // Try multiple times with increasing delays to ensure elements are fully rendered
-    let attempts = 0;
-    const maxAttempts = 5;
-    const attemptWithDelay = (delay) => {
-      setTimeout(() => {
-        if (findAppElementsAndSetCenters()) {
-          generateConnections();
-        } else if (attempts < maxAttempts) {
-          attempts++;
-          attemptWithDelay(delay * 1.5); // Increase delay for next attempt
-        } else {
-          // Final fallback if elements never found correctly
-          console.warn("Could not find all app elements, using fallback positioning");
-          apps.forEach(app => {
-            if (!app.centerPosition) {
-              app.centerPosition = {
-                left: app.position.left + 25,
-                top: app.position.top + 25
-              };
-            }
-          });
-          generateConnections();
-        }
-      }, delay);
-    };
-    
-    // Start first attempt with short delay
-    attemptWithDelay(100);
-  }
-  
-  
-  
-  // Handle window resize events
-  function handleResize() {
-    // Clear existing connections
-    connections = [];
-    
-    // Update layout and regenerate connections
-    updateLayoutAndRender();
-  }
-  
-  // Generate the roads when the component mounts
-  onMount(() => {
-    // Initial setup
-    updateLayoutAndRender();
-    
-    // Setup center positions after a short delay to allow AppSelector to render
-    setTimeout(() => {
-      setupAppCenterPositions();
-    }, 100);
-    
-    // Set up a resize observer to handle container size changes
-    const container = document.querySelector('.budy');
-    if (container && 'ResizeObserver' in window) {
-      resizeObserver = new ResizeObserver(debounce(() => {
-        handleResize();
-      }, 250)); // Debounce to prevent excessive recalculations
-      
-      resizeObserver.observe(container);
-    } else {
-      // Fallback to window resize event
-      window.addEventListener('resize', debounce(() => {
-        handleResize();
-      }, 250));
-    }
-    
-    return () => {
-      // Clean up event listeners and observers
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      } else {
-        window.removeEventListener('resize', handleResize);
-      }
-    };
-  });
-  
-  // Debounce helper to limit how often a function can be called
-  function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-  }
-  
-  // Calculate road width based on container size and connection importance
-  function calculateRoadWidth(importance) {
-    const baseWidth = 10;
-    const importanceMultiplier = 15;
-    
-    // Scale width based on container size
-    const scaleFactor = Math.min(containerWidth, containerHeight) / 1000;
-    const scaledBaseWidth = baseWidth * Math.max(0.5, Math.min(2, scaleFactor));
-    const scaledMultiplier = importanceMultiplier * Math.max(0.5, Math.min(2, scaleFactor));
-    
-    return scaledBaseWidth + (importance || 0) * scaledMultiplier;
-  }
-
+  import AppSelector from '$lib/components/AppSelector.svelte'; // Adjust path if needed
+  // Import other app components (BirdApp, DogApp, ShopApp) if they are used DIRECTLY here,
+  // otherwise they are only needed by AppSelector
+  import LibApp from '$lib/components/Lib.svelte';
+  import DogApp from '$lib/components/Shop copy 2.svelte';
+  import ShopApp from '$lib/components/Shop.svelte';
+  import { onMount, afterUpdate, onDestroy } from 'svelte';
   import { authStore } from '$lib/components/stores/AuthStore';
 
+  export let data; // Assuming data comes from a load function or prop
+  const cards = data?.cards || []; // Use cards from data if available
+
+  // --- Reference Design Dimensions (Keep Fixed!) ---
+  const designWidth = 1920;
+  const designHeight = 1080;
+
+  // --- Interfaces (Ensure these match your actual definitions) ---
+  interface AppPosition { top: string; left: string; }
+  interface AppRenderedPosition { top: number; left: number; }
+  interface AppCenterPosition { x: number; y: number; }
+  interface AppContent { title: string; description: string; component: any; } // 'any' for Svelte component constructor
+
+  interface App {
+    id: string;
+    emoji: string; // Used as identifier in AppSelector
+    where: AppPosition; // Relative CSS position (%)
+    content: AppContent;
+    renderedPosition?: AppRenderedPosition;
+    centerPosition?: AppCenterPosition; // VIEWBOX coordinates
+    element?: HTMLElement;
+    widthPx?: number;
+    heightPx?: number;
+  }
+  interface RoadConnection {
+    app1: App;
+    app2: App;
+    shouldCurve?: boolean;
+    pathData?: string;
+  }
+  interface Decoration {
+    id: string;
+    src: string;
+    position: { x: number; y: number }; // %
+    size: { width: number; height: number }; // %
+    rotation?: number;
+  }
+
+  // --- Helper Functions ---
+  const pxToPercent = (value: number, dimension: 'width' | 'height'): string => {
+    const relativeTo = dimension === 'width' ? designWidth : designHeight;
+    return `${((value / relativeTo) * 100).toFixed(2)}%`;
+  };
+  const pxToPercentNum = (value: number, dimension: 'width' | 'height'): number => {
+      const relativeTo = dimension === 'width' ? designWidth : designHeight;
+      return (value / relativeTo * 100);
+  };
+
+  // --- App Definitions (MUST include component constructor for AppSelector) ---
+  // Make sure the component values are actual Svelte component imports
+  // You might need to import DogApp, BirdApp, ShopApp at the top
+  let apps: App[] = [
+    //  { id: 'rabbit', emoji: "/favicon.png", where: { top: pxToPercent(200, 'height'), left: pxToPercent(150, 'width') }, content: { title: "Rabbit App", description: "Desc", component: DogApp } },
+     { id: 'library', emoji: "library-big.svg", where: { top: pxToPercent(380, 'height'), left: pxToPercent(300, 'width') }, content: { title: "Library", description: "Library", component: LibApp } },
+     { id: 'fish', emoji: "/favicon.png", where: { top: pxToPercent(600, 'height'), left: pxToPercent(250, 'width') }, content: { title: "", description: "Desc", component: DogApp } },
+    //  { id: 'dog', emoji: "/favicon.png", where: { top: pxToPercent(180, 'height'), left: pxToPercent(480, 'width') }, content: { title: "Dog App", description: "Desc", component: DogApp } },
+    //  { id: 'bird2', emoji: "/favicon.png", where: { top: pxToPercent(220, 'height'), left: pxToPercent(850, 'width') }, content: { title: "Bird App 2", description: "Desc", component: DogApp } },
+    //  { id: 'turtle', emoji: "/favicon.png", where: { top: pxToPercent(550, 'height'), left: pxToPercent(750, 'width') }, content: { title: "Turtle App", description: "Desc", component: DogApp } },
+     { id: 'shop', emoji: "/store.svg", where: { top: pxToPercent(900, 'height'), left: pxToPercent(1300, 'width') }, content: { title: "Shop", description: "Shop", component: ShopApp } },
+  ];
+
+  // --- Auth Store ---
   let user: import('@supabase/gotrue-js').User | null = null;
-    authStore.subscribe(({ user: currentUser }) => {
-    user = currentUser;
+  authStore.subscribe(({ user: currentUser }) => { user = currentUser; });
+
+  // --- State ---
+  let roadConnections: RoadConnection[] = [];
+  let positionsCalculated = false;
+  let layoutContainerElement: HTMLElement | null = null;
+
+  // --- Decorations (Example with larger tree1) ---
+  let decorations: Decoration[] = [
+  // --- Original Decorations ---
+  { id: 'tree1', src: '/tree.svg', position: { x: pxToPercentNum(250, 'width'), y: pxToPercentNum(180, 'height') }, size: { width: pxToPercentNum(80, 'width'), height: pxToPercentNum(112, 'height') }, rotation: -5 }, // Made larger previously
+  { id: 'tree2', src: '/tree.svg', position: { x: pxToPercentNum(600, 'width'), y: pxToPercentNum(120, 'height') }, size: { width: pxToPercentNum(60, 'width'), height: pxToPercentNum(80, 'height') } },
+  { id: 'rock1', src: '/rock.svg', position: { x: pxToPercentNum(400, 'width'), y: pxToPercentNum(350, 'height') }, size: { width: pxToPercentNum(40, 'width'), height: pxToPercentNum(30, 'height') }, rotation: 15 },
+  { id: 'rock2', src: '/rock.svg', position: { x: pxToPercentNum(950, 'width'), y: pxToPercentNum(200, 'height') }, size: { width: pxToPercentNum(35, 'width'), height: pxToPercentNum(25, 'height') } },
+  { id: 'tree3', src: '/tree.svg', position: { x: pxToPercentNum(1050, 'width'), y: pxToPercentNum(480, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(75, 'height') }, rotation: 8 },
+  { id: 'bush1', src: '/bush.svg', position: { x: pxToPercentNum(180, 'width'), y: pxToPercentNum(450, 'height') }, size: { width: pxToPercentNum(45, 'width'), height: pxToPercentNum(40, 'height') } },
+  { id: 'rock3', src: '/rock.svg', position: { x: pxToPercentNum(700, 'width'), y: pxToPercentNum(600, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(35, 'height') }, rotation: -10 },
+  { id: 'tree4', src: '/tree.svg', position: { x: pxToPercentNum(50, 'width'), y: pxToPercentNum(580, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(70, 'height') } },
+  { id: 'bush2', src: '/bush.svg', position: { x: pxToPercentNum(880, 'width'), y: pxToPercentNum(350, 'height') }, size: { width: pxToPercentNum(40, 'width'), height: pxToPercentNum(35, 'height') }, rotation: 20 },
+  { id: 'tree5', src: '/tree.svg', position: { x: pxToPercentNum(1000, 'width'), y: pxToPercentNum(300, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(70, 'height') }, rotation: 3 },
+
+  // --- New Decorations (Spread out and Enlarged) ---
+  { id: 'tree6', src: '/tree.svg', position: { x: pxToPercentNum(1450, 'width'), y: pxToPercentNum(150, 'height') }, size: { width: pxToPercentNum(85, 'width'), height: pxToPercentNum(115, 'height') }, rotation: 4 }, // Top Right Area - Larger
+  { id: 'rock4', src: '/rock.svg', position: { x: pxToPercentNum(150, 'width'), y: pxToPercentNum(850, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(36, 'height') }, rotation: -8 }, // Bottom Left Area - Larger
+  { id: 'bush3', src: '/bush.svg', position: { x: pxToPercentNum(1300, 'width'), y: pxToPercentNum(400, 'height') }, size: { width: pxToPercentNum(60, 'width'), height: pxToPercentNum(55, 'height') } }, // Mid-Right Area - Larger
+  { id: 'tree7', src: '/tree.svg', position: { x: pxToPercentNum(1750, 'width'), y: pxToPercentNum(550, 'height') }, size: { width: pxToPercentNum(80, 'width'), height: pxToPercentNum(110, 'height') }, rotation: -3 }, // Far Right Area - Larger
+  { id: 'rock5', src: '/rock.svg', position: { x: pxToPercentNum(550, 'width'), y: pxToPercentNum(900, 'height') }, size: { width: pxToPercentNum(72, 'width'), height: pxToPercentNum(48, 'height') }, rotation: 12 }, // Mid-Bottom Area - Larger
+  { id: 'bush4', src: '/bush.svg', position: { x: pxToPercentNum(1600, 'width'), y: pxToPercentNum(800, 'height') }, size: { width: pxToPercentNum(48, 'width'), height: pxToPercentNum(42, 'height') }, rotation: -15 }, // Bottom Right Area - Larger
+  { id: 'tree8', src: '/tree.svg', position: { x: pxToPercentNum(100, 'width'), y: pxToPercentNum(100, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(80, 'height') } }, // Top Left Area - Larger
+  { id: 'rock6', src: '/rock.svg', position: { x: pxToPercentNum(750, 'width'), y: pxToPercentNum(850, 'height') }, size: { width: pxToPercentNum(36, 'width'), height: pxToPercentNum(24, 'height') } }, // Bottom Mid Area (small rock) - Larger
+  { id: 'tree9', src: '/tree.svg', position: { x: pxToPercentNum(1400, 'width'), y: pxToPercentNum(950, 'height') }, size: { width: pxToPercentNum(66, 'width'), height: pxToPercentNum(90, 'height') }, rotation: 6 }, // Low Mid-Right Area - Larger
+  { id: 'bush5', src: '/bush.svg', position: { x: pxToPercentNum(850, 'width'), y: pxToPercentNum(80, 'height') }, size: { width: pxToPercentNum(42, 'width'), height: pxToPercentNum(36, 'height') } }, // Top Center-Right Area (small bush) - Larger
+  { id: 'rock7', src: '/rock.svg', position: { x: pxToPercentNum(1150, 'width'), y: pxToPercentNum(700, 'height') }, size: { width: pxToPercentNum(48, 'width'), height: pxToPercentNum(34, 'height') }, rotation: 25 }, // Mid-Right Lower Area - Larger
+  { id: 'tree10', src: '/tree.svg', position: { x: pxToPercentNum(350, 'width'), y: pxToPercentNum(720, 'height') }, size: { width: pxToPercentNum(72, 'width'), height: pxToPercentNum(102, 'height') }, rotation: -7 }, // Lower Left-Mid Area - Larger
+];
+
+  // --- Position Calculation & Coordinate Conversion ---
+  // (This function remains exactly the same as the previous correct version)
+  function getAppElementsAndPositions() {
+    if (!layoutContainerElement) return false;
+    let changedOverall = false;
+    const tolerance = 1.0;
+    const containerRect = layoutContainerElement.getBoundingClientRect();
+    if (containerRect.width === 0 || containerRect.height === 0) return false;
+    const scaleX = designWidth / containerRect.width;
+    const scaleY = designHeight / containerRect.height;
+
+    apps.forEach(app => {
+      // IMPORTANT: Assumes AppSelector renders the clickable element (button or div) with id={app.id}
+      const element = document.getElementById(app.id);
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const newLeftPx = rect.left - containerRect.left;
+        const newTopPx = rect.top - containerRect.top;
+        const currentWidthPx = rect.width;
+        const currentHeightPx = rect.height;
+        const newCenterXPx = newLeftPx + currentWidthPx / 2;
+        // Adjust connection point Y based on your visual preference (e.g., 0.8 for bottom)
+        const newCenterYPx = newTopPx + currentHeightPx * 0.8;
+
+        const newSvgCenterX = newCenterXPx * scaleX;
+        const newSvgCenterY = newCenterYPx * scaleY;
+
+        if (!app.renderedPosition || Math.abs(app.renderedPosition.top - newTopPx) > 0.5 || Math.abs(app.renderedPosition.left - newLeftPx) > 0.5) {
+           app.renderedPosition = { top: newTopPx, left: newLeftPx };
+           app.widthPx = currentWidthPx;
+           app.heightPx = currentHeightPx;
+        }
+        if (!app.centerPosition || Math.abs(app.centerPosition.x - newSvgCenterX) > tolerance || Math.abs(app.centerPosition.y - newSvgCenterY) > tolerance) {
+           app.centerPosition = { x: newSvgCenterX, y: newSvgCenterY };
+           changedOverall = true;
+        }
+        app.element = element;
+      } else {
+        // Warning might appear initially until AppSelector renders
+        // console.warn(`Element with id ${app.id} not found during position check.`);
+      }
     });
-  // Access betaFeatures directly
-  console.log(user?.user_metadata.beta_features || false);
-  </script>
-  
-  <div class="budy relative">
-    <!-- SVG layer for the roads (positioned below apps) -->
-     {#if user?.user_metadata.beta_features || false}
-  
-    <svg class="absolute top-0 left-0 w-full h-full" style="z-index: 1;">
-      {#each connections as connection}
-        {#if connection.path}
-          <path
-            d={connection.path}
-            stroke="#333"
-            stroke-width={calculateRoadWidth(connection.importance)}
-            fill="none"
-            stroke-linecap="round"
-          />
-          
-          <path
-            d={connection.path}
-            stroke="white"
-            stroke-width={2 * Math.max(0.5, Math.min(2, Math.min(containerWidth, containerHeight) / 1000))}
-            fill="none"
-            stroke-dasharray="8,16"
-            stroke-linecap="round"
-          />
-        {/if}
-      {/each}
-    </svg>
- 
-    {/if}
-    <!-- AppSelector component (positioned above roads) -->
-    <div style="position: relative; z-index: 2;">
-      <AppSelector {apps} cards={cards} />
-    </div>
-  </div>
- 
-  <style>
-    .budy {
-      /* background-image: url('$lib/components/map.png'); */
-      margin-top: -5.1rem;
-      width: 100%;
-      height: 100vh;
-      position: relative;
+
+    if (changedOverall) {
+      positionsCalculated = apps.every(app => app.centerPosition);
+      apps = [...apps]; // Trigger reactivity
+      // console.log('App SVG positions updated. All calculated:', positionsCalculated);
     }
-  </style>
+    return changedOverall;
+  }
+
+  // --- MST Logic (distance, calculateMST) ---
+  // (These functions remain exactly the same, using app.centerPosition)
+   function distance(app1: App, app2: App): number {
+     if (!app1.centerPosition || !app2.centerPosition) return Infinity;
+     const dx = app1.centerPosition.x - app2.centerPosition.x;
+     const dy = app1.centerPosition.y - app2.centerPosition.y;
+     return Math.sqrt(dx * dx + dy * dy);
+   }
+   function calculateMST(): { app1: App; app2: App }[] {
+     if (apps.length < 2) return [];
+     const edges: { app1: App; app2: App; dist: number }[] = [];
+     for (let i = 0; i < apps.length; i++) {
+       for (let j = i + 1; j < apps.length; j++) {
+         const dist = distance(apps[i], apps[j]);
+         if (dist !== Infinity) { edges.push({ app1: apps[i], app2: apps[j], dist }); }
+       }
+     }
+     edges.sort((a, b) => a.dist - b.dist);
+     const mst: { app1: App; app2: App }[] = [];
+     const parent: { [key: string]: string } = {};
+     apps.forEach(app => { parent[app.id] = app.id; });
+     function find(appId: string): string { /* ... */ if (parent[appId] === appId) { return appId; } return parent[appId] = find(parent[appId]); }
+     function union(appId1: string, appId2: string): boolean { /* ... */ const root1 = find(appId1); const root2 = find(appId2); if (root1 !== root2) { parent[root1] = root2; return true; } return false; }
+     for (const edge of edges) {
+       if (union(edge.app1.id, edge.app2.id)) {
+         mst.push({ app1: edge.app1, app2: edge.app2 });
+         if (mst.length === apps.length - 1) break;
+       }
+     }
+     return mst;
+   }
+
+  // --- Curve Calculation (getCurvePathData) ---
+  // (This function remains exactly the same, using app.centerPosition)
+   function getCurvePathData(app1: App, app2: App, curveFactor = 0.2): string | null {
+       if (!app1.centerPosition || !app2.centerPosition) return null;
+       const x1 = app1.centerPosition.x; const y1 = app1.centerPosition.y;
+       const x2 = app2.centerPosition.x; const y2 = app2.centerPosition.y;
+       const midX = (x1 + x2) / 2; const midY = (y1 + y2) / 2;
+       const dx = x2 - x1; const dy = y2 - y1;
+       const len = Math.sqrt(dx * dx + dy * dy);
+       if (len < 1) return `M ${x1} ${y1} L ${x2} ${y2}`;
+       const perpX = -dy / len; const perpY = dx / len;
+       const offsetAmount = Math.min(len * curveFactor, 60); // Max offset in viewBox units
+       const controlX = midX + perpX * offsetAmount; const controlY = midY + perpY * offsetAmount;
+       return `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`;
+   }
+
+
+  // --- Update Roads Logic ---
+  // (This function remains exactly the same, relying on getAppElementsAndPositions)
+   function updateRoads() {
+       const positionsChangedSignificantly = getAppElementsAndPositions();
+       if (positionsCalculated) {
+           let needsMstRecalc = positionsChangedSignificantly || roadConnections.length === 0;
+           let newConnections: RoadConnection[];
+           const processConnection = (conn: { app1: App, app2: App } | RoadConnection, isUpdate = false): RoadConnection => {
+               let shouldCurve = false;
+               let pathData = (isUpdate && (conn as RoadConnection).shouldCurve && (conn as RoadConnection).pathData) ? (conn as RoadConnection).pathData : null;
+               const currentApp1 = apps.find(a => a.id === conn.app1.id) || conn.app1;
+               const currentApp2 = apps.find(a => a.id === conn.app2.id) || conn.app2;
+               if (currentApp1.centerPosition && currentApp2.centerPosition) {
+                   const x1 = currentApp1.centerPosition.x; const y1 = currentApp1.centerPosition.y;
+                   const x2 = currentApp2.centerPosition.x; const y2 = currentApp2.centerPosition.y;
+                   const dx = Math.abs(x2 - x1); const dy = Math.abs(y2 - y1);
+                   const minDelta = 1; const straightnessThreshold = 0.25;
+                   if (dx > minDelta || dy > minDelta) {
+                       if (!(dx < minDelta || dy < minDelta)) {
+                           const ratio = Math.min(dx, dy) / Math.max(dx, dy);
+                           if (ratio >= straightnessThreshold) { shouldCurve = true; }
+                       }
+                   }
+                   if (shouldCurve) {
+                       if (!pathData || positionsChangedSignificantly) { pathData = getCurvePathData(currentApp1, currentApp2); }
+                       if (!pathData) shouldCurve = false;
+                   } else { pathData = null; }
+               } else { shouldCurve = false; pathData = null; }
+               return { app1: currentApp1, app2: currentApp2, shouldCurve: shouldCurve, pathData: pathData };
+           }; // end processConnection
+           if (needsMstRecalc || positionsChangedSignificantly) {
+               if (needsMstRecalc) {
+                   let mst = calculateMST();
+                   newConnections = mst.map(conn => processConnection(conn, false));
+               } else {
+                   newConnections = roadConnections.map(conn => processConnection(conn, true));
+               }
+               roadConnections = newConnections;
+           }
+       } else { /* Positions not ready */ }
+   } // end updateRoads
+
+
+  // --- Lifecycle Hooks ---
+  let resizeObserver: ResizeObserver | null = null;
+  let initialUpdateDone = false;
+
+  onMount(() => {
+    const initialTimeout = setTimeout(() => {
+      if (layoutContainerElement) {
+        updateRoads(); // First calculation attempt
+        initialUpdateDone = true;
+      }
+    }, 150); // Slightly longer delay just in case
+
+    if (layoutContainerElement) {
+        resizeObserver = new ResizeObserver(() => { requestAnimationFrame(updateRoads); });
+        resizeObserver.observe(layoutContainerElement);
+    }
+
+    updateBgColor();
+    window.addEventListener('resize', updateBgColor);
+
+    return () => { // Cleanup
+      clearTimeout(initialTimeout);
+      if (resizeObserver && layoutContainerElement) resizeObserver.unobserve(layoutContainerElement);
+      resizeObserver = null;
+      window.removeEventListener('resize', updateBgColor);
+    };
+  });
+
+  afterUpdate(() => {
+    // Attempt initial update if mount failed but container exists now
+    if (!initialUpdateDone && layoutContainerElement) {
+        requestAnimationFrame(() => {
+            updateRoads();
+            initialUpdateDone = true;
+        });
+    }
+    // Check if roads need update due to apps array changing (e.g. dynamic add/remove)
+    // This is a simplistic check; more robust might involve comparing app IDs/positions
+    if (initialUpdateDone && roadConnections.length !== apps.length -1 && apps.length > 1) {
+       console.log("App count changed, triggering road update.");
+       requestAnimationFrame(updateRoads);
+    }
+  });
+
+  // --- Background color logic ---
+  let windowWidth: number = 0;
+  let bgColor: string = '#B3D9A1';
+  const updateBgColor = () => {
+      windowWidth = window.innerWidth;
+      bgColor = windowWidth < 768 ? '#03020' : '#B3D9A1';
+  };
+  import LanguageDialog from '$lib/components/LangSelect.svelte'; // adjust path as needed
+  let showDialog = false;
+</script>
+<LanguageDialog bind:show={showDialog} />
+
+<!-- Main container -->
+<div class="page-container" style="background-color: {bgColor};">
+
+  {#if windowWidth < 768}
+    <div class="mobile-message">
+        <p>Please view on a larger screen for the interactive map.</p>
+    </div>
+  {:else}
+    <!-- Scalable Layout Container -->
+    <div class="layout-container" style="    max-width: {designWidth}px;
+    aspect-ratio: {designWidth} / {designHeight};" bind:this={layoutContainerElement}>
+      <!-- SVG Container -->
+      <svg
+        viewBox="0 0 {designWidth} {designHeight}"
+        preserveAspectRatio="xMidYMid meet"
+        class="road-svg"
+      >
+         <!-- Decorations -->
+         <g class="decorations">
+           {#each decorations as deco (deco.id)}
+             <image
+               href={deco.src}
+               x={`${deco.position.x}%`} y={`${deco.position.y}%`}
+               width={`${deco.size.width}%`} height={`${deco.size.height}%`}
+               transform={deco.rotation ? `rotate(${deco.rotation} ${deco.position.x + deco.size.width / 2}% ${deco.position.y + deco.size.height / 2}%)` : ''}
+             />
+           {/each}
+         </g>
+         <!-- Roads -->
+         <g class="road-casings">
+            {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-casing')} {#if conn.app1.centerPosition && conn.app2.centerPosition} {#if conn.shouldCurve && conn.pathData} <path d={conn.pathData} class="road-casing" /> {:else} <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-casing" /> {/if} {/if} {/each}
+          </g>
+          <g class="road-lines">
+            {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-line')} {#if conn.app1.centerPosition && conn.app2.centerPosition} {#if conn.shouldCurve && conn.pathData} <path d={conn.pathData} class="road-line" /> {:else} <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-line" /> {/if} {/if} {/each}
+          </g>
+          <g class="road-middle-lines">
+             {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-middle')} {#if conn.app1.centerPosition && conn.app2.centerPosition} {#if conn.shouldCurve && conn.pathData} <path d={conn.pathData} class="road-middle-line" /> {:else} <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-middle-line" /> {/if} {/if} {/each}
+          </g>
+      </svg>
+
+      <!-- App Icons Container (Overlay) -->
+      
+      <AppSelector {apps} {cards} />
+    </div> <!-- End layout-container -->
+    {/if}
+    
+  </div> <!-- End page-container -->
+  <div class="apps-overlay">
+     <!-- Render AppSelector directly inside the overlay -->
+     <!-- It will position its icons absolutely within this div -->
+     
+    </div>
+  
+<style>
+  .page-container {
+    margin-top: -5.1rem;
+    width: 100%;
+    min-height: 104vh;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .mobile-message { padding: 2rem; text-align: center; color: #eee; }
+
+  .layout-container {
+    position: relative;
+    width: 95%;
+    margin: auto;
+    overflow: visible; /* Changed to visible incase icons slightly overlap edges */
+  }
+
+  .road-svg {
+    display: block; position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+  }
+
+  .apps-overlay {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; /* Overlay doesn't block */
+      z-index: 1; /* Above SVG, below popups */
+      /* border: 1px solid blue; */ /* Debugging */
+  }
+
+  /* --- Global Styles for App Icons Rendered by AppSelector --- */
+  /* Targets the class AppSelector should add to its icon buttons/divs */
+ :global(.app-icon-wrapper) {
+     position: absolute !important; /* MUST be absolute */
+     z-index: 2; /* Above roads, below open app */
+     pointer-events: auto; /* Icons are clickable */
+     /* Center the icon horizontally, place connection point near bottom vertically */
+     transform: translate(-50%, -80%);
+     /* Define base size - AppSelector might override with inline styles if needed */
+     width: 50px;
+     height: 50px;
+     cursor: pointer;
+     transition: transform 0.2s ease-out;
+     border-radius: 8px;
+     /* background-color: rgba(255, 0, 0, 0.2); */ /* Debugging */
+  }
+
+  :global(.app-icon-wrapper:hover) {
+      /* Keep the same translate, only scale */
+      transform: translate(-50%, -80%) scale(1.15);
+      /* box-shadow: 0 0 15px rgba(255, 255, 255, 0.7); */
+  }
+
+  :global(.app-icon-wrapper img) { /* Style the image inside */
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+  }
+
+  /* --- Road & Decoration Styles (Remain the same) --- */
+  .road-casing, .road-line, .road-middle-line { fill: none; stroke-linecap: round; stroke-linejoin: round; /* vector-effect: non-scaling-stroke; */ }
+  line.road-middle-line, path.road-middle-line { stroke-linecap: butt; }
+  .road-casing { stroke: #4a4a4a; stroke-width: 32; }
+  .road-line { stroke: #6e6e6e; stroke-width: 28; }
+  .road-middle-line { stroke: #ffffff; stroke-width: 4.5; stroke-dasharray: 10 10; }
+  .decorations image { opacity: 0.95; pointer-events: none; }
+
+  /* --- Styles for AppSelector's OPEN state (Full screen overlay) --- */
+  /* These styles are now effectively controlled by AppSelector's internal styles */
+  /* If AppSelector's styles are scoped, they won't conflict. If global, prefix them */
+  /* Example if AppSelector styles were global: */
+  /*
+  :global(.app-selector-open-app) { ... }
+  :global(.app-selector-app-content) { ... }
+  :global(.app-selector-close-button) { ... }
+  */
+
+</style>

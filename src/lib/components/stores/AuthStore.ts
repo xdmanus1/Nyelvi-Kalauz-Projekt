@@ -8,11 +8,19 @@ interface AuthState {
     betaFeatures: boolean | null;
 }
 
+interface LanguagePair {
+    from: string;
+    to: string;
+}
+
+
 interface AuthStore extends Writable<AuthState> {
     initialize: () => Promise<void>;
     signIn: (email: string, password: string) => Promise<{ user: User | null; error: AuthError | null }>;
     signUp: (email: string, password: string, username: string) => Promise<{ user: User | null; error: AuthError | null }>;
     signOut: () => Promise<{ error: AuthError | null }>;
+    updateUserLanguage: (languagePair: LanguagePair) => Promise<{ error: AuthError | null }>;
+
 }
 
 function createAuthStore(): AuthStore {
@@ -96,7 +104,31 @@ function createAuthStore(): AuthStore {
 
             set({ user: null, betaFeatures: null });
             return { error: null };
+        },
+        updateUserLanguage: async (languagePair: LanguagePair) => {
+            const { data, error } = await supabase.auth.updateUser({
+                data: {
+                    language_from: languagePair.from,
+                    language_to: languagePair.to
+                }
+            });
+
+            if (error) {
+                console.error('Error updating language preference:', error.message);
+                return { error };
+            }
+
+            if (data.user) {
+                const betaFeatures = data.user.app_metadata?.beta_features ?? null;
+                set({ user: data.user, betaFeatures });
+            }
+
+            // Store in localStorage as backup
+            localStorage.setItem('selectedLanguage', JSON.stringify(languagePair));
+
+            return { error: null };
         }
+
     };
 }
 
