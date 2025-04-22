@@ -1,22 +1,26 @@
 <script lang="ts">
-  // @ts-nocheck
-  import AppSelector from '$lib/components/AppSelector.svelte'; // Adjust path if needed
-  // Import other app components (BirdApp, DogApp, ShopApp) if they are used DIRECTLY here,
-  // otherwise they are only needed by AppSelector
+  // @ts-nocheck - Keep if necessary, but try to resolve type issues if possible
+  import AppSelector from '$lib/components/AppSelector.svelte';
+  // Import actual app components
   import LibApp from '$lib/components/Lib.svelte';
   import MusApp from '$lib/components/Museum.svelte';
   import ShopApp from '$lib/components/Shop.svelte';
+  // Add other app component imports here if used (e.g., DogApp, BirdApp)
+  // import DogApp from '$lib/components/DogApp.svelte';
+
   import { onMount, afterUpdate, onDestroy } from 'svelte';
-  import { authStore } from '$lib/components/stores/AuthStore';
+  import { authStore } from '$lib/components/stores/AuthStore'; // Ensure correct path
+  import { page } from '$app/stores';
+  import LanguageDialog from '$lib/components/LangSelect.svelte'; // Adjust path if needed
 
-  export let data; // Assuming data comes from a load function or prop
-  const cards = data?.cards || []; // Use cards from data if available
+  export let data;
+  const cards = data?.cards || [];
 
-  // --- Reference Design Dimensions (Keep Fixed!) ---
+  // --- Reference Design Dimensions ---
   const designWidth = 1920;
   const designHeight = 1080;
 
-  // --- Interfaces (Ensure these match your actual definitions) ---
+  // --- Interfaces ---
   interface AppPosition { top: string; left: string; }
   interface AppRenderedPosition { top: number; left: number; }
   interface AppCenterPosition { x: number; y: number; }
@@ -57,17 +61,14 @@
       return (value / relativeTo * 100);
   };
 
-  // --- App Definitions (MUST include component constructor for AppSelector) ---
-  // Make sure the component values are actual Svelte component imports
-  // You might need to import DogApp, BirdApp, ShopApp at the top
+  // --- App Definitions ---
   let apps: App[] = [
-    //  { id: 'rabbit', emoji: "/favicon.png", where: { top: pxToPercent(200, 'height'), left: pxToPercent(150, 'width') }, content: { title: "Rabbit App", description: "Desc", component: DogApp } },
-     { id: 'library', emoji: "library-big.svg", where: { top: pxToPercent(380, 'height'), left: pxToPercent(300, 'width') }, content: { title: "Library", description: "Library", component: LibApp } },
+     // Example apps - replace with your actual app definitions
+     // { id: 'dog', emoji: "/dog-icon.svg", where: { top: pxToPercent(180, 'height'), left: pxToPercent(480, 'width') }, content: { title: "Dog App", description: "Desc", component: DogApp } },
+     { id: 'library', emoji: "/library-big.svg", where: { top: pxToPercent(380, 'height'), left: pxToPercent(300, 'width') }, content: { title: "Library", description: "Library", component: LibApp } },
      { id: 'museum', emoji: "/landmark.svg", where: { top: pxToPercent(600, 'height'), left: pxToPercent(250, 'width') }, content: { title: "Museum", description: "Museum", component: MusApp } },
-    //  { id: 'dog', emoji: "/favicon.png", where: { top: pxToPercent(180, 'height'), left: pxToPercent(480, 'width') }, content: { title: "Dog App", description: "Desc", component: DogApp } },
-    //  { id: 'bird2', emoji: "/favicon.png", where: { top: pxToPercent(220, 'height'), left: pxToPercent(850, 'width') }, content: { title: "Bird App 2", description: "Desc", component: DogApp } },
-    //  { id: 'turtle', emoji: "/favicon.png", where: { top: pxToPercent(550, 'height'), left: pxToPercent(750, 'width') }, content: { title: "Turtle App", description: "Desc", component: DogApp } },
      { id: 'shop', emoji: "/store.svg", where: { top: pxToPercent(900, 'height'), left: pxToPercent(1300, 'width') }, content: { title: "Shop", description: "Shop", component: ShopApp } },
+     // Add all your other apps here
   ];
 
   // --- Auth Store ---
@@ -78,201 +79,318 @@
   let roadConnections: RoadConnection[] = [];
   let positionsCalculated = false;
   let layoutContainerElement: HTMLElement | null = null;
+  let appIdFromUrl: string | null = null; // To hold the app ID from the query param
 
-  // --- Decorations (Example with larger tree1) ---
+  // --- Decorations ---
   let decorations: Decoration[] = [
-  // --- Original Decorations ---
-  { id: 'tree1', src: '/tree.svg', position: { x: pxToPercentNum(250, 'width'), y: pxToPercentNum(180, 'height') }, size: { width: pxToPercentNum(80, 'width'), height: pxToPercentNum(112, 'height') }, rotation: -5 }, // Made larger previously
-  { id: 'tree2', src: '/tree.svg', position: { x: pxToPercentNum(600, 'width'), y: pxToPercentNum(120, 'height') }, size: { width: pxToPercentNum(60, 'width'), height: pxToPercentNum(80, 'height') } },
-  { id: 'rock1', src: '/rock.svg', position: { x: pxToPercentNum(400, 'width'), y: pxToPercentNum(350, 'height') }, size: { width: pxToPercentNum(40, 'width'), height: pxToPercentNum(30, 'height') }, rotation: 15 },
-  { id: 'rock2', src: '/rock.svg', position: { x: pxToPercentNum(950, 'width'), y: pxToPercentNum(200, 'height') }, size: { width: pxToPercentNum(35, 'width'), height: pxToPercentNum(25, 'height') } },
-  { id: 'tree3', src: '/tree.svg', position: { x: pxToPercentNum(1050, 'width'), y: pxToPercentNum(480, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(75, 'height') }, rotation: 8 },
-  { id: 'bush1', src: '/bush.svg', position: { x: pxToPercentNum(180, 'width'), y: pxToPercentNum(450, 'height') }, size: { width: pxToPercentNum(45, 'width'), height: pxToPercentNum(40, 'height') } },
-  { id: 'rock3', src: '/rock.svg', position: { x: pxToPercentNum(700, 'width'), y: pxToPercentNum(600, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(35, 'height') }, rotation: -10 },
-  { id: 'tree4', src: '/tree.svg', position: { x: pxToPercentNum(50, 'width'), y: pxToPercentNum(580, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(70, 'height') } },
-  { id: 'bush2', src: '/bush.svg', position: { x: pxToPercentNum(880, 'width'), y: pxToPercentNum(350, 'height') }, size: { width: pxToPercentNum(40, 'width'), height: pxToPercentNum(35, 'height') }, rotation: 20 },
-  { id: 'tree5', src: '/tree.svg', position: { x: pxToPercentNum(1000, 'width'), y: pxToPercentNum(300, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(70, 'height') }, rotation: 3 },
-
-  // --- New Decorations (Spread out and Enlarged) ---
-  { id: 'tree6', src: '/tree.svg', position: { x: pxToPercentNum(1450, 'width'), y: pxToPercentNum(150, 'height') }, size: { width: pxToPercentNum(85, 'width'), height: pxToPercentNum(115, 'height') }, rotation: 4 }, // Top Right Area - Larger
-  { id: 'rock4', src: '/rock.svg', position: { x: pxToPercentNum(150, 'width'), y: pxToPercentNum(850, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(36, 'height') }, rotation: -8 }, // Bottom Left Area - Larger
-  { id: 'bush3', src: '/bush.svg', position: { x: pxToPercentNum(1300, 'width'), y: pxToPercentNum(400, 'height') }, size: { width: pxToPercentNum(60, 'width'), height: pxToPercentNum(55, 'height') } }, // Mid-Right Area - Larger
-  { id: 'tree7', src: '/tree.svg', position: { x: pxToPercentNum(1750, 'width'), y: pxToPercentNum(550, 'height') }, size: { width: pxToPercentNum(80, 'width'), height: pxToPercentNum(110, 'height') }, rotation: -3 }, // Far Right Area - Larger
-  { id: 'rock5', src: '/rock.svg', position: { x: pxToPercentNum(550, 'width'), y: pxToPercentNum(900, 'height') }, size: { width: pxToPercentNum(72, 'width'), height: pxToPercentNum(48, 'height') }, rotation: 12 }, // Mid-Bottom Area - Larger
-  { id: 'bush4', src: '/bush.svg', position: { x: pxToPercentNum(1600, 'width'), y: pxToPercentNum(800, 'height') }, size: { width: pxToPercentNum(48, 'width'), height: pxToPercentNum(42, 'height') }, rotation: -15 }, // Bottom Right Area - Larger
-  { id: 'tree8', src: '/tree.svg', position: { x: pxToPercentNum(100, 'width'), y: pxToPercentNum(100, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(80, 'height') } }, // Top Left Area - Larger
-  { id: 'rock6', src: '/rock.svg', position: { x: pxToPercentNum(750, 'width'), y: pxToPercentNum(850, 'height') }, size: { width: pxToPercentNum(36, 'width'), height: pxToPercentNum(24, 'height') } }, // Bottom Mid Area (small rock) - Larger
-  { id: 'tree9', src: '/tree.svg', position: { x: pxToPercentNum(1400, 'width'), y: pxToPercentNum(950, 'height') }, size: { width: pxToPercentNum(66, 'width'), height: pxToPercentNum(90, 'height') }, rotation: 6 }, // Low Mid-Right Area - Larger
-  { id: 'bush5', src: '/bush.svg', position: { x: pxToPercentNum(850, 'width'), y: pxToPercentNum(80, 'height') }, size: { width: pxToPercentNum(42, 'width'), height: pxToPercentNum(36, 'height') } }, // Top Center-Right Area (small bush) - Larger
-  { id: 'rock7', src: '/rock.svg', position: { x: pxToPercentNum(1150, 'width'), y: pxToPercentNum(700, 'height') }, size: { width: pxToPercentNum(48, 'width'), height: pxToPercentNum(34, 'height') }, rotation: 25 }, // Mid-Right Lower Area - Larger
-  { id: 'tree10', src: '/tree.svg', position: { x: pxToPercentNum(350, 'width'), y: pxToPercentNum(720, 'height') }, size: { width: pxToPercentNum(72, 'width'), height: pxToPercentNum(102, 'height') }, rotation: -7 }, // Lower Left-Mid Area - Larger
-];
+    // --- Your full list of decorations ---
+    { id: 'tree1', src: '/tree.svg', position: { x: pxToPercentNum(250, 'width'), y: pxToPercentNum(180, 'height') }, size: { width: pxToPercentNum(80, 'width'), height: pxToPercentNum(112, 'height') }, rotation: -5 },
+    { id: 'tree2', src: '/tree.svg', position: { x: pxToPercentNum(600, 'width'), y: pxToPercentNum(120, 'height') }, size: { width: pxToPercentNum(60, 'width'), height: pxToPercentNum(80, 'height') } },
+    { id: 'rock1', src: '/rock.svg', position: { x: pxToPercentNum(400, 'width'), y: pxToPercentNum(350, 'height') }, size: { width: pxToPercentNum(40, 'width'), height: pxToPercentNum(30, 'height') }, rotation: 15 },
+    { id: 'rock2', src: '/rock.svg', position: { x: pxToPercentNum(950, 'width'), y: pxToPercentNum(200, 'height') }, size: { width: pxToPercentNum(35, 'width'), height: pxToPercentNum(25, 'height') } },
+    { id: 'tree3', src: '/tree.svg', position: { x: pxToPercentNum(1050, 'width'), y: pxToPercentNum(480, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(75, 'height') }, rotation: 8 },
+    { id: 'bush1', src: '/bush.svg', position: { x: pxToPercentNum(180, 'width'), y: pxToPercentNum(450, 'height') }, size: { width: pxToPercentNum(45, 'width'), height: pxToPercentNum(40, 'height') } },
+    { id: 'rock3', src: '/rock.svg', position: { x: pxToPercentNum(700, 'width'), y: pxToPercentNum(600, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(35, 'height') }, rotation: -10 },
+    { id: 'tree4', src: '/tree.svg', position: { x: pxToPercentNum(50, 'width'), y: pxToPercentNum(580, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(70, 'height') } },
+    { id: 'bush2', src: '/bush.svg', position: { x: pxToPercentNum(880, 'width'), y: pxToPercentNum(350, 'height') }, size: { width: pxToPercentNum(40, 'width'), height: pxToPercentNum(35, 'height') }, rotation: 20 },
+    { id: 'tree5', src: '/tree.svg', position: { x: pxToPercentNum(1000, 'width'), y: pxToPercentNum(300, 'height') }, size: { width: pxToPercentNum(50, 'width'), height: pxToPercentNum(70, 'height') }, rotation: 3 },
+    { id: 'tree6', src: '/tree.svg', position: { x: pxToPercentNum(1450, 'width'), y: pxToPercentNum(150, 'height') }, size: { width: pxToPercentNum(85, 'width'), height: pxToPercentNum(115, 'height') }, rotation: 4 },
+    { id: 'rock4', src: '/rock.svg', position: { x: pxToPercentNum(150, 'width'), y: pxToPercentNum(850, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(36, 'height') }, rotation: -8 },
+    { id: 'bush3', src: '/bush.svg', position: { x: pxToPercentNum(1300, 'width'), y: pxToPercentNum(400, 'height') }, size: { width: pxToPercentNum(60, 'width'), height: pxToPercentNum(55, 'height') } },
+    { id: 'tree7', src: '/tree.svg', position: { x: pxToPercentNum(1750, 'width'), y: pxToPercentNum(550, 'height') }, size: { width: pxToPercentNum(80, 'width'), height: pxToPercentNum(110, 'height') }, rotation: -3 },
+    { id: 'rock5', src: '/rock.svg', position: { x: pxToPercentNum(550, 'width'), y: pxToPercentNum(900, 'height') }, size: { width: pxToPercentNum(72, 'width'), height: pxToPercentNum(48, 'height') }, rotation: 12 },
+    { id: 'bush4', src: '/bush.svg', position: { x: pxToPercentNum(1600, 'width'), y: pxToPercentNum(800, 'height') }, size: { width: pxToPercentNum(48, 'width'), height: pxToPercentNum(42, 'height') }, rotation: -15 },
+    { id: 'tree8', src: '/tree.svg', position: { x: pxToPercentNum(100, 'width'), y: pxToPercentNum(100, 'height') }, size: { width: pxToPercentNum(55, 'width'), height: pxToPercentNum(80, 'height') } },
+    { id: 'rock6', src: '/rock.svg', position: { x: pxToPercentNum(750, 'width'), y: pxToPercentNum(850, 'height') }, size: { width: pxToPercentNum(36, 'width'), height: pxToPercentNum(24, 'height') } },
+    { id: 'tree9', src: '/tree.svg', position: { x: pxToPercentNum(1400, 'width'), y: pxToPercentNum(950, 'height') }, size: { width: pxToPercentNum(66, 'width'), height: pxToPercentNum(90, 'height') }, rotation: 6 },
+    { id: 'bush5', src: '/bush.svg', position: { x: pxToPercentNum(850, 'width'), y: pxToPercentNum(80, 'height') }, size: { width: pxToPercentNum(42, 'width'), height: pxToPercentNum(36, 'height') } },
+    { id: 'rock7', src: '/rock.svg', position: { x: pxToPercentNum(1150, 'width'), y: pxToPercentNum(700, 'height') }, size: { width: pxToPercentNum(48, 'width'), height: pxToPercentNum(34, 'height') }, rotation: 25 },
+    { id: 'tree10', src: '/tree.svg', position: { x: pxToPercentNum(350, 'width'), y: pxToPercentNum(720, 'height') }, size: { width: pxToPercentNum(72, 'width'), height: pxToPercentNum(102, 'height') }, rotation: -7 },
+  ];
 
   // --- Position Calculation & Coordinate Conversion ---
-  // (This function remains exactly the same as the previous correct version)
   function getAppElementsAndPositions() {
     if (!layoutContainerElement) return false;
     let changedOverall = false;
-    const tolerance = 1.0;
+    const tolerance = 1.0; // SVG units tolerance for change detection
     const containerRect = layoutContainerElement.getBoundingClientRect();
+    // Avoid calculations if container has no dimensions (can happen initially)
     if (containerRect.width === 0 || containerRect.height === 0) return false;
+
     const scaleX = designWidth / containerRect.width;
     const scaleY = designHeight / containerRect.height;
 
     apps.forEach(app => {
-      // IMPORTANT: Assumes AppSelector renders the clickable element (button or div) with id={app.id}
+      // Target the clickable element rendered by AppSelector (button with id={app.id})
       const element = document.getElementById(app.id);
       if (element) {
         const rect = element.getBoundingClientRect();
+        // Calculate position relative to the layout container
         const newLeftPx = rect.left - containerRect.left;
         const newTopPx = rect.top - containerRect.top;
         const currentWidthPx = rect.width;
         const currentHeightPx = rect.height;
+
+        // Center point in pixels relative to container
         const newCenterXPx = newLeftPx + currentWidthPx / 2;
-        // Adjust connection point Y based on your visual preference (e.g., 0.8 for bottom)
+        // Adjust connection point Y (e.g., 80% down from top)
         const newCenterYPx = newTopPx + currentHeightPx * 0.8;
 
+        // Convert pixel center to SVG viewBox coordinates
         const newSvgCenterX = newCenterXPx * scaleX;
         const newSvgCenterY = newCenterYPx * scaleY;
 
+        // Update rendered pixel position if significantly changed
         if (!app.renderedPosition || Math.abs(app.renderedPosition.top - newTopPx) > 0.5 || Math.abs(app.renderedPosition.left - newLeftPx) > 0.5) {
            app.renderedPosition = { top: newTopPx, left: newLeftPx };
            app.widthPx = currentWidthPx;
            app.heightPx = currentHeightPx;
+           // Note: No need to mark changedOverall here, only SVG position matters for roads
         }
+        // Update SVG center position if significantly changed
         if (!app.centerPosition || Math.abs(app.centerPosition.x - newSvgCenterX) > tolerance || Math.abs(app.centerPosition.y - newSvgCenterY) > tolerance) {
            app.centerPosition = { x: newSvgCenterX, y: newSvgCenterY };
-           changedOverall = true;
+           changedOverall = true; // Mark change if SVG position updated
         }
-        app.element = element;
+        app.element = element; // Store reference if needed later
       } else {
-        // Warning might appear initially until AppSelector renders
+        // This might log warnings initially until AppSelector renders elements
         // console.warn(`Element with id ${app.id} not found during position check.`);
       }
     });
 
     if (changedOverall) {
-      positionsCalculated = apps.every(app => app.centerPosition);
-      apps = [...apps]; // Trigger reactivity
+      positionsCalculated = apps.every(app => !!app.centerPosition); // Check if ALL apps have positions
+      apps = [...apps]; // Trigger Svelte reactivity by creating a new array reference
       // console.log('App SVG positions updated. All calculated:', positionsCalculated);
     }
     return changedOverall;
   }
 
   // --- MST Logic (distance, calculateMST) ---
-  // (These functions remain exactly the same, using app.centerPosition)
    function distance(app1: App, app2: App): number {
-     if (!app1.centerPosition || !app2.centerPosition) return Infinity;
+     if (!app1.centerPosition || !app2.centerPosition) return Infinity; // Cannot calculate if positions are missing
      const dx = app1.centerPosition.x - app2.centerPosition.x;
      const dy = app1.centerPosition.y - app2.centerPosition.y;
      return Math.sqrt(dx * dx + dy * dy);
    }
+
    function calculateMST(): { app1: App; app2: App }[] {
-     if (apps.length < 2) return [];
+     if (!apps || apps.length < 2) return [];
+
+     const validApps = apps.filter(app => !!app.centerPosition); // Only consider apps with calculated positions
+     if (validApps.length < 2) return [];
+
      const edges: { app1: App; app2: App; dist: number }[] = [];
-     for (let i = 0; i < apps.length; i++) {
-       for (let j = i + 1; j < apps.length; j++) {
-         const dist = distance(apps[i], apps[j]);
-         if (dist !== Infinity) { edges.push({ app1: apps[i], app2: apps[j], dist }); }
+     for (let i = 0; i < validApps.length; i++) {
+       for (let j = i + 1; j < validApps.length; j++) {
+         const dist = distance(validApps[i], validApps[j]);
+         if (dist !== Infinity) {
+             edges.push({ app1: validApps[i], app2: validApps[j], dist });
+         }
        }
      }
-     edges.sort((a, b) => a.dist - b.dist);
-     const mst: { app1: App; app2: App }[] = [];
-     const parent: { [key: string]: string } = {};
-     apps.forEach(app => { parent[app.id] = app.id; });
-     function find(appId: string): string { /* ... */ if (parent[appId] === appId) { return appId; } return parent[appId] = find(parent[appId]); }
-     function union(appId1: string, appId2: string): boolean { /* ... */ const root1 = find(appId1); const root2 = find(appId2); if (root1 !== root2) { parent[root1] = root2; return true; } return false; }
+
+     edges.sort((a, b) => a.dist - b.dist); // Sort edges by distance
+
+     const mst: { app1: App; app2: App }[] = []; // Minimum Spanning Tree edges
+     const parent: { [key: string]: string } = {}; // For Union-Find algorithm
+
+     // Initialize parent of each node to itself
+     validApps.forEach(app => { parent[app.id] = app.id; });
+
+     // Find the root parent of a node (with path compression)
+     function find(appId: string): string {
+         if (parent[appId] === appId) {
+             return appId;
+         }
+         // Path compression: set parent directly to the root
+         return parent[appId] = find(parent[appId]);
+     }
+
+     // Union two sets (returns true if union happened, false if already in same set)
+     function union(appId1: string, appId2: string): boolean {
+         const root1 = find(appId1);
+         const root2 = find(appId2);
+         if (root1 !== root2) {
+             parent[root1] = root2; // Merge sets by making one root parent of the other
+             return true;
+         }
+         return false;
+     }
+
+     // Kruskal's algorithm: Add edges in increasing order of weight if they connect different components
      for (const edge of edges) {
        if (union(edge.app1.id, edge.app2.id)) {
          mst.push({ app1: edge.app1, app2: edge.app2 });
-         if (mst.length === apps.length - 1) break;
+         // Stop when we have (N-1) edges for N nodes
+         if (mst.length === validApps.length - 1) break;
        }
      }
      return mst;
    }
 
   // --- Curve Calculation (getCurvePathData) ---
-  // (This function remains exactly the same, using app.centerPosition)
    function getCurvePathData(app1: App, app2: App, curveFactor = 0.2): string | null {
-       if (!app1.centerPosition || !app2.centerPosition) return null;
+       if (!app1.centerPosition || !app2.centerPosition) return null; // Need positions
+
        const x1 = app1.centerPosition.x; const y1 = app1.centerPosition.y;
        const x2 = app2.centerPosition.x; const y2 = app2.centerPosition.y;
+
        const midX = (x1 + x2) / 2; const midY = (y1 + y2) / 2;
        const dx = x2 - x1; const dy = y2 - y1;
        const len = Math.sqrt(dx * dx + dy * dy);
+
+       // If points are too close, draw a straight line
        if (len < 1) return `M ${x1} ${y1} L ${x2} ${y2}`;
+
+       // Calculate perpendicular vector (normalized)
        const perpX = -dy / len; const perpY = dx / len;
-       const offsetAmount = Math.min(len * curveFactor, 60); // Max offset in viewBox units
-       const controlX = midX + perpX * offsetAmount; const controlY = midY + perpY * offsetAmount;
+
+       // Calculate control point offset (proportional to length, but capped)
+       const maxOffset = 60; // Max curve offset in SVG units
+       const offsetAmount = Math.min(len * curveFactor, maxOffset);
+
+       // Calculate control point coordinates
+       const controlX = midX + perpX * offsetAmount;
+       const controlY = midY + perpY * offsetAmount;
+
+       // Return SVG path data for quadratic Bezier curve
        return `M ${x1} ${y1} Q ${controlX} ${controlY} ${x2} ${y2}`;
    }
 
-
   // --- Update Roads Logic ---
-  // (This function remains exactly the same, relying on getAppElementsAndPositions)
    function updateRoads() {
+       // Ensure elements are found and positions calculated first
        const positionsChangedSignificantly = getAppElementsAndPositions();
-       if (positionsCalculated) {
-           let needsMstRecalc = positionsChangedSignificantly || roadConnections.length === 0;
+
+       if (positionsCalculated) { // Only proceed if all app positions are known
+           // Determine if MST needs recalculation (first time, or if positions changed)
+           let needsMstRecalc = positionsChangedSignificantly || roadConnections.length === 0 || roadConnections.length !== apps.filter(a => !!a.centerPosition).length - 1;
+
            let newConnections: RoadConnection[];
-           const processConnection = (conn: { app1: App, app2: App } | RoadConnection, isUpdate = false): RoadConnection => {
+
+           // Helper to process a connection (either new or existing)
+           const processConnection = (connInput: { app1: App, app2: App } | RoadConnection, isUpdate = false): RoadConnection => {
+               let conn: RoadConnection = isUpdate ? (connInput as RoadConnection) : { app1: connInput.app1, app2: connInput.app2 };
                let shouldCurve = false;
-               let pathData = (isUpdate && (conn as RoadConnection).shouldCurve && (conn as RoadConnection).pathData) ? (conn as RoadConnection).pathData : null;
+               let pathData: string | null = conn.shouldCurve && conn.pathData && isUpdate ? conn.pathData : null; // Keep existing path if just updating curve status
+
+               // Get the potentially updated app objects from the main 'apps' array
                const currentApp1 = apps.find(a => a.id === conn.app1.id) || conn.app1;
                const currentApp2 = apps.find(a => a.id === conn.app2.id) || conn.app2;
+
+               // Calculate path data only if positions exist
                if (currentApp1.centerPosition && currentApp2.centerPosition) {
                    const x1 = currentApp1.centerPosition.x; const y1 = currentApp1.centerPosition.y;
                    const x2 = currentApp2.centerPosition.x; const y2 = currentApp2.centerPosition.y;
-                   const dx = Math.abs(x2 - x1); const dy = Math.abs(y2 - y1);
-                   const minDelta = 1; const straightnessThreshold = 0.25;
-                   if (dx > minDelta || dy > minDelta) {
-                       if (!(dx < minDelta || dy < minDelta)) {
+
+                   const dx = Math.abs(x2 - x1);
+                   const dy = Math.abs(y2 - y1);
+
+                   // Thresholds for deciding to curve vs. draw straight line
+                   const minDelta = 1; // Minimum difference to consider curving
+                   const straightnessThreshold = 0.25; // Ratio of min(dx, dy) / max(dx, dy)
+
+                   // Decide if it should curve (not perfectly horizontal or vertical)
+                   if (dx > minDelta || dy > minDelta) { // Avoid tiny lines
+                       if (!(dx < minDelta || dy < minDelta)) { // Neither strictly horizontal nor vertical
                            const ratio = Math.min(dx, dy) / Math.max(dx, dy);
-                           if (ratio >= straightnessThreshold) { shouldCurve = true; }
+                           if (ratio >= straightnessThreshold) {
+                               shouldCurve = true;
+                           }
                        }
                    }
+
+                   // Calculate path data if curving is needed (or if positions changed significantly)
                    if (shouldCurve) {
-                       if (!pathData || positionsChangedSignificantly) { pathData = getCurvePathData(currentApp1, currentApp2); }
-                       if (!pathData) shouldCurve = false;
-                   } else { pathData = null; }
-               } else { shouldCurve = false; pathData = null; }
+                       // Recalculate path if needed (new, positions changed, or no path exists)
+                       if (!pathData || positionsChangedSignificantly || !isUpdate) {
+                           pathData = getCurvePathData(currentApp1, currentApp2);
+                           if (!pathData) shouldCurve = false; // Fallback if curve calculation fails
+                       }
+                   } else {
+                       pathData = null; // Straight line, no 'd' attribute needed for <line>
+                   }
+               } else {
+                   // Cannot draw if positions are missing
+                   shouldCurve = false;
+                   pathData = null;
+               }
                return { app1: currentApp1, app2: currentApp2, shouldCurve: shouldCurve, pathData: pathData };
            }; // end processConnection
-           if (needsMstRecalc || positionsChangedSignificantly) {
-               if (needsMstRecalc) {
-                   let mst = calculateMST();
-                   newConnections = mst.map(conn => processConnection(conn, false));
-               } else {
-                   newConnections = roadConnections.map(conn => processConnection(conn, true));
-               }
+
+           // Recalculate MST or update existing connections
+           if (needsMstRecalc) {
+               // console.log("Recalculating MST and processing connections.");
+               let mst = calculateMST();
+               newConnections = mst.map(conn => processConnection(conn, false));
+           } else if (positionsChangedSignificantly) {
+               // console.log("Positions changed, reprocessing existing connections.");
+               // Only re-process existing connections if positions changed but MST structure is likely the same
+               newConnections = roadConnections.map(conn => processConnection(conn, true));
+           } else {
+               // If nothing changed, keep existing connections
+               newConnections = roadConnections;
+           }
+
+           // Update the main roadConnections state if changes occurred
+           if (newConnections !== roadConnections) {
                roadConnections = newConnections;
            }
-       } else { /* Positions not ready */ }
+       } else {
+           // console.log("Positions not calculated yet, skipping road update.");
+       }
    } // end updateRoads
-
 
   // --- Lifecycle Hooks ---
   let resizeObserver: ResizeObserver | null = null;
   let initialUpdateDone = false;
+  let mountCheckTimeout: number | null = null;
 
   onMount(() => {
-    const initialTimeout = setTimeout(() => {
+    // Check for Query Parameter
+    const urlParams = $page.url.searchParams;
+    const openAppParam = urlParams.get('openApp');
+    if (openAppParam) {
+        console.log(`+page.svelte: Found openApp parameter: ${openAppParam}`);
+        appIdFromUrl = openAppParam; // Set state variable
+
+        // Clean up URL using replaceState
+        const currentPath = $page.url.pathname;
+        requestAnimationFrame(() => {
+             if (window.history && window.history.replaceState) {
+                history.replaceState(history.state, '', currentPath);
+                // console.log(`+page.svelte: Cleaned URL query parameter.`);
+             }
+        });
+    }
+
+    // Delay initial road update slightly to allow DOM elements (icons) to render
+    mountCheckTimeout = window.setTimeout(() => {
       if (layoutContainerElement) {
+        // console.log("Attempting initial road update after mount timeout.");
         updateRoads(); // First calculation attempt
         initialUpdateDone = true;
+      } else {
+        console.warn("Layout container not found after mount timeout.");
       }
-    }, 150); // Slightly longer delay just in case
+    }, 200); // Increased delay slightly
 
+    // Setup ResizeObserver
     if (layoutContainerElement) {
-        resizeObserver = new ResizeObserver(() => { requestAnimationFrame(updateRoads); });
+        resizeObserver = new ResizeObserver(() => {
+            // Use rAF to debounce resize updates and sync with browser rendering
+            requestAnimationFrame(updateRoads);
+        });
         resizeObserver.observe(layoutContainerElement);
     }
 
-    updateBgColor();
+    updateBgColor(); // Initial background color set
     window.addEventListener('resize', updateBgColor);
 
     return () => { // Cleanup
-      clearTimeout(initialTimeout);
+      if (mountCheckTimeout) clearTimeout(mountCheckTimeout);
       if (resizeObserver && layoutContainerElement) resizeObserver.unobserve(layoutContainerElement);
       resizeObserver = null;
       window.removeEventListener('resize', updateBgColor);
@@ -280,51 +398,104 @@
   });
 
   afterUpdate(() => {
-    // Attempt initial update if mount failed but container exists now
+    // Attempt initial update if mount logic failed but container exists now
     if (!initialUpdateDone && layoutContainerElement) {
-        requestAnimationFrame(() => {
+        // console.log("Attempting road update in afterUpdate.");
+        requestAnimationFrame(() => { // Ensure it runs after DOM updates
             updateRoads();
-            initialUpdateDone = true;
+            initialUpdateDone = true; // Mark as done even if it fails, prevent loops
         });
     }
-    // Check if roads need update due to apps array changing (e.g. dynamic add/remove)
-    // This is a simplistic check; more robust might involve comparing app IDs/positions
-    if (initialUpdateDone && roadConnections.length !== apps.length -1 && apps.length > 1) {
-       console.log("App count changed, triggering road update.");
+    // Optional: Check if roads need update due to apps array changing dynamically
+    // This is a basic check; more robust logic might be needed depending on how 'apps' changes
+    const validAppsCount = apps.filter(a => !!a.centerPosition).length;
+    if (initialUpdateDone && validAppsCount > 1 && roadConnections.length !== validAppsCount - 1 ) {
+       // console.log("App/position count changed, triggering road update.");
        requestAnimationFrame(updateRoads);
     }
   });
 
   // --- Background color logic ---
   let windowWidth: number = 0;
-  let bgColor: string = '#B3D9A1';
+  let bgColor: string = '#B3D9A1'; // Default desktop
   const updateBgColor = () => {
-      windowWidth = window.innerWidth;
-      bgColor = windowWidth < 768 ? '#03020' : '#B3D9A1';
+      if (typeof window !== 'undefined') {
+        windowWidth = window.innerWidth;
+        bgColor = windowWidth < 768 ? '#03020' : '#B3D9A1'; // Mobile vs Desktop
+      }
   };
-  import LanguageDialog from '$lib/components/LangSelect.svelte'; // adjust path as needed
-  let showDialog = false;
+  // Ensure called on mount for initial value
+  onMount(() => { updateBgColor(); });
+
+  let showDialog = false; // For LanguageDialog
+
+  // --- NEW: Event Handler for App Opening ---
+  function handleAppOpened(event: CustomEvent<{ appId: string }>) {
+    const appId = event.detail.appId;
+    if (appId) {
+      console.log(`+page.svelte: appOpened event received for ID: ${appId}. Calling authStore update.`);
+      // Call the authStore method to update the last visited app ID in Supabase
+      authStore.updateLastVisitedApp(appId);
+    } else {
+      console.warn("+page.svelte: appOpened event received without an appId.");
+    }
+  }
+  // --- END NEW HANDLER ---
+  $: {
+        if (typeof window !== 'undefined') { // Ensure runs only in browser
+            const currentUrlParams = $page.url.searchParams;
+            const currentOpenAppParam = currentUrlParams.get('openApp');
+
+            console.log(`+page.svelte REACTION: currentOpenAppParam from $page.url: ${currentOpenAppParam}`);
+
+            // Update appIdFromUrl ONLY if the param exists and is different
+            // from the value currently held in state. This prevents loops.
+            if (currentOpenAppParam && currentOpenAppParam !== appIdFromUrl) {
+                console.log(`+page.svelte REACTION: Updating appIdFromUrl from ${appIdFromUrl} to ${currentOpenAppParam}`);
+                appIdFromUrl = currentOpenAppParam;
+
+                // Clean up the URL again after reacting to the change caused by goto
+                const currentPath = $page.url.pathname;
+                requestAnimationFrame(() => {
+                     if (window.history && window.history.replaceState) {
+                        history.replaceState(history.state, '', currentPath);
+                        console.log(`+page.svelte REACTION: Cleaned URL parameter.`);
+                     }
+                });
+            }
+            // Optional: Handle case where param is removed from URL but appIdFromUrl still holds old value
+            // else if (!currentOpenAppParam && appIdFromUrl) {
+            //  console.log(`+page.svelte REACTION: Clearing appIdFromUrl because param removed`);
+            //  appIdFromUrl = null;
+            // }
+        }
+    }
 </script>
+
 <LanguageDialog bind:show={showDialog} />
 
 <!-- Main container -->
 <div class="page-container" style="background-color: {bgColor};">
 
-  {#if windowWidth < 768}
+  {#if windowWidth < 768 && typeof window !== 'undefined' }
     <div class="mobile-message">
         <p>Please view on a larger screen for the interactive map.</p>
+        <!-- Consider adding basic mobile navigation/content here -->
     </div>
-  {:else}
+  {:else if typeof window !== 'undefined'}
     <!-- Scalable Layout Container -->
-    <div class="layout-container" style="    max-width: {designWidth}px;
-    aspect-ratio: {designWidth} / {designHeight};" bind:this={layoutContainerElement}>
-      <!-- SVG Container -->
+    <div class="layout-container" style="max-width: {designWidth}px; aspect-ratio: {designWidth} / {designHeight};aspect-ratio: {designWidth} / {designHeight};
+    max-width: calc(100vh * ({designWidth} / {designHeight}));
+    max-height: calc(100vw * ({designHeight} / {designWidth}));
+    max-width: min(95%, {designWidth}px);" bind:this={layoutContainerElement}>
+      <!-- SVG Container for Roads and Decorations -->
       <svg
         viewBox="0 0 {designWidth} {designHeight}"
         preserveAspectRatio="xMidYMid meet"
         class="road-svg"
+        aria-hidden="true" 
       >
-         <!-- Decorations -->
+         <!-- Decorations Layer (Rendered first, behind roads) -->
          <g class="decorations">
            {#each decorations as deco (deco.id)}
              <image
@@ -332,115 +503,154 @@
                x={`${deco.position.x}%`} y={`${deco.position.y}%`}
                width={`${deco.size.width}%`} height={`${deco.size.height}%`}
                transform={deco.rotation ? `rotate(${deco.rotation} ${deco.position.x + deco.size.width / 2}% ${deco.position.y + deco.size.height / 2}%)` : ''}
+               style="transform-origin: {deco.position.x + deco.size.width / 2}% {deco.position.y + deco.size.height / 2}%;" 
              />
            {/each}
          </g>
-         <!-- Roads -->
+         <!-- Roads Layer (Rendered above decorations) -->
+         <!-- Road Casings (Thick outer line) -->
          <g class="road-casings">
-            {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-casing')} {#if conn.app1.centerPosition && conn.app2.centerPosition} {#if conn.shouldCurve && conn.pathData} <path d={conn.pathData} class="road-casing" /> {:else} <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-casing" /> {/if} {/if} {/each}
+            {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-casing')}
+                {#if conn.app1.centerPosition && conn.app2.centerPosition}
+                    {#if conn.shouldCurve && conn.pathData}
+                        <path d={conn.pathData} class="road-casing" />
+                    {:else}
+                        <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-casing" />
+                    {/if}
+                {/if}
+            {/each}
           </g>
+          <!-- Road Lines (Inner main line) -->
           <g class="road-lines">
-            {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-line')} {#if conn.app1.centerPosition && conn.app2.centerPosition} {#if conn.shouldCurve && conn.pathData} <path d={conn.pathData} class="road-line" /> {:else} <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-line" /> {/if} {/if} {/each}
+            {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-line')}
+                {#if conn.app1.centerPosition && conn.app2.centerPosition}
+                    {#if conn.shouldCurve && conn.pathData}
+                        <path d={conn.pathData} class="road-line" />
+                    {:else}
+                        <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-line" />
+                    {/if}
+                {/if}
+            {/each}
           </g>
+          <!-- Road Middle Dashed Lines -->
           <g class="road-middle-lines">
-             {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-middle')} {#if conn.app1.centerPosition && conn.app2.centerPosition} {#if conn.shouldCurve && conn.pathData} <path d={conn.pathData} class="road-middle-line" /> {:else} <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-middle-line" /> {/if} {/if} {/each}
+             {#each roadConnections as conn (conn.app1.id + '-' + conn.app2.id + '-middle')}
+                 {#if conn.app1.centerPosition && conn.app2.centerPosition}
+                    {#if conn.shouldCurve && conn.pathData}
+                        <path d={conn.pathData} class="road-middle-line" />
+                    {:else}
+                        <line x1={conn.app1.centerPosition.x} y1={conn.app1.centerPosition.y} x2={conn.app2.centerPosition.x} y2={conn.app2.centerPosition.y} class="road-middle-line" />
+                    {/if}
+                 {/if}
+             {/each}
           </g>
       </svg>
 
-      <!-- App Icons Container (Overlay) -->
-      
-      <AppSelector {apps} {cards} />
+      <!-- AppSelector Component (Overlayed on top of SVG) -->
+      <!-- Listen for the custom event -->
+      <AppSelector
+        {apps}
+        {cards}
+        initialOpenAppId={appIdFromUrl}
+        on:appOpened={handleAppOpened}
+      />
+
     </div> <!-- End layout-container -->
-    {/if}
-    
-  </div> <!-- End page-container -->
-  <div class="apps-overlay">
-     <!-- Render AppSelector directly inside the overlay -->
-     <!-- It will position its icons absolutely within this div -->
-     
-    </div>
-  
+  {/if} <!-- End check for desktop width -->
+
+</div> <!-- End page-container -->
+
+
 <style>
+  /* Base page styling */
   .page-container {
-    margin-top: -5.1rem;
+    margin-top: -5.1rem; /* Offset for navbar height */
     width: 100%;
-    min-height: 104vh;
+    min-height: 104vh; /* Ensure full coverage */
     position: relative;
-    overflow: hidden;
+    overflow: hidden; /* Prevent unwanted scrollbars */
     display: flex;
     justify-content: center;
     align-items: center;
+    background-color: #B3D9A1; /* Default, overridden by inline style */
   }
 
-  .mobile-message { padding: 2rem; text-align: center; color: #eee; }
+  /* Message for small screens */
+  .mobile-message {
+      padding: 2rem;
+      text-align: center;
+      color: #eee; /* Assumes dark mobile background */
+      width: 100%;
+  }
 
+  /* Container for the map layout */
   .layout-container {
-    position: relative;
-    width: 95%;
-    margin: auto;
-    overflow: visible; /* Changed to visible incase icons slightly overlap edges */
+    position: relative; /* For absolute positioning of children */
+    width: 95%; /* Responsive width */
+    /* Use aspect-ratio for modern browsers */
+    
+    margin: auto; /* Center horizontally */
+    overflow: visible; /* Allow icon hover effects to extend */
   }
 
+  /* SVG styling */
   .road-svg {
-    display: block; position: absolute; top: 0; left: 0;
+    display: block; /* Remove extra space below */
+    position: absolute;
+    top: 0; left: 0;
     width: 100%; height: 100%;
-    pointer-events: none; z-index: 0;
+    pointer-events: none; /* Allow clicks through SVG */
+    z-index: 0; /* Base layer */
   }
 
-  .apps-overlay {
-      position: absolute; top: 0; left: 0;
-      width: 100%; height: 100%;
-      pointer-events: none; /* Overlay doesn't block */
-      z-index: 1; /* Above SVG, below popups */
-      /* border: 1px solid blue; */ /* Debugging */
+  /* Road styling */
+  .road-casing, .road-line, .road-middle-line {
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      /* Consider non-scaling-stroke if needed */
+      /* vector-effect: non-scaling-stroke; */
+  }
+  line.road-middle-line, path.road-middle-line {
+      stroke-linecap: butt; /* For dashed lines */
+  }
+  .road-casing { stroke: #4a4a4a; stroke-width: 32; }
+  .road-line { stroke: #6e6e6e; stroke-width: 28; }
+  .road-middle-line {
+      stroke: #ffffff;
+      stroke-width: 4.5;
+      stroke-dasharray: 15 15; /* Dash pattern */
   }
 
-  /* --- Global Styles for App Icons Rendered by AppSelector --- */
-  /* Targets the class AppSelector should add to its icon buttons/divs */
- :global(.app-icon-wrapper) {
-     position: absolute !important; /* MUST be absolute */
-     z-index: 2; /* Above roads, below open app */
+  /* Decoration styling */
+  .decorations image {
+      opacity: 0.95;
+      pointer-events: none; /* Decorations don't block clicks */
+      /* Improve rendering quality */
+      image-rendering: pixelated; /* Or 'crisp-edges' depending on style */
+  }
+
+  /* :global styles are needed for elements rendered inside AppSelector */
+  /* These styles are defined here but apply globally to matching selectors */
+  :global(.app-icon-wrapper) { /* Assuming AppSelector uses this class */
+     position: absolute !important;
+     z-index: 2; /* Above roads */
      pointer-events: auto; /* Icons are clickable */
-     /* Center the icon horizontally, place connection point near bottom vertically */
      transform: translate(-50%, -80%);
-     /* Define base size - AppSelector might override with inline styles if needed */
-     width: 50px;
-     height: 50px;
+     width: 50px; height: 50px;
      cursor: pointer;
      transition: transform 0.2s ease-out;
-     border-radius: 8px;
-     /* background-color: rgba(255, 0, 0, 0.2); */ /* Debugging */
+     border-radius: 8px; /* Example */
   }
 
   :global(.app-icon-wrapper:hover) {
-      /* Keep the same translate, only scale */
       transform: translate(-50%, -80%) scale(1.15);
-      /* box-shadow: 0 0 15px rgba(255, 255, 255, 0.7); */
   }
 
-  :global(.app-icon-wrapper img) { /* Style the image inside */
+  :global(.app-icon-wrapper img) {
       display: block;
-      width: 100%;
-      height: 100%;
+      width: 100%; height: 100%;
       object-fit: contain;
   }
-
-  /* --- Road & Decoration Styles (Remain the same) --- */
-  .road-casing, .road-line, .road-middle-line { fill: none; stroke-linecap: round; stroke-linejoin: round; /* vector-effect: non-scaling-stroke; */ }
-  line.road-middle-line, path.road-middle-line { stroke-linecap: butt; }
-  .road-casing { stroke: #4a4a4a; stroke-width: 32; }
-  .road-line { stroke: #6e6e6e; stroke-width: 28; }
-  .road-middle-line { stroke: #ffffff; stroke-width: 4.5; stroke-dasharray: 10 10; }
-  .decorations image { opacity: 0.95; pointer-events: none; }
-
-  /* --- Styles for AppSelector's OPEN state (Full screen overlay) --- */
-  /* These styles are now effectively controlled by AppSelector's internal styles */
-  /* If AppSelector's styles are scoped, they won't conflict. If global, prefix them */
-  /* Example if AppSelector styles were global: */
-  /*
-  :global(.app-selector-open-app) { ... }
-  :global(.app-selector-app-content) { ... }
-  :global(.app-selector-close-button) { ... }
-  */
 
 </style>

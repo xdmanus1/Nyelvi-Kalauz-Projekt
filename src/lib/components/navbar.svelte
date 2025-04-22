@@ -1,16 +1,18 @@
 <script lang="ts">
     import Dropdown from './dropdown.svelte';
     import { Button } from "$lib/components/ui/button";
-    import { Avatar, AvatarFallback } from "$lib/components/ui/avatar";
+    // Avatar not used directly
     import { User, Menu } from "lucide-svelte";
     import { page } from "$app/stores";
+    import { goto } from '$app/navigation'; // Import goto for programmatic navigation
     import {
         Sheet,
         SheetContent,
         SheetTrigger,
     } from "$lib/components/ui/sheet";
     import { onMount } from 'svelte';
-    import { authStore } from '../components/stores/AuthStore';
+    // Ensure AuthState is exported from AuthStore.ts
+    import { authStore, type AuthState } from './stores/AuthStore';
     import { toast } from "svelte-sonner";
     import LoginModal from "./login-modal.svelte";
     import { Motion } from "svelte-motion";
@@ -21,57 +23,71 @@
         isBrowser = true;
     });
 
-    // Subscribe to authStore to get the current user
-    let user: import('@supabase/gotrue-js').User | null = null;
-    authStore.subscribe(({ user: currentUser }) => {
-        user = currentUser;
-    });
+    // --- Direct Store Subscription ---
+    const authState = authStore; // Reference to the store
+
+    // --- Reactive Calculation for User/Initials ---
+    $: user = $authState.user; // Use $ prefix for reactive access
+    $: initials = user ? getInitials(user.email || user.id) : '';
+
+    // --- Reactive Calculation for Learning Link ---
+    $: learningLink = $authState.lastVisitedAppId
+        ? `/?openApp=${encodeURIComponent($authState.lastVisitedAppId)}`
+        : '/'; // Fallback to root
+
+    // --- Define Nav Items - Initial State ---
+    // We will update this array reactively
+    let navs = [
+        { name: "Home", link: "/", isLearningLink: false },
+        { name: "Learning", link: "/", isLearningLink: true }, // Initial link, will be updated
+        { name: "Quiz", link: "/Quiz", isLearningLink: false },
+    ];
+
+    // --- Reactive Update for 'navs' Array (Restoring structure for animation) ---
+    // This block runs whenever learningLink (which depends on $authState) changes.
+    $: {
+        // Update the link within the navs array directly
+        navs = navs.map(nav => {
+            if (nav.isLearningLink) {
+                // Update the link property using the reactive learningLink
+                return { ...nav, link: learningLink };
+            }
+            return nav;
+        });
+        // console.log("Navbar: Reactive update of navs array. New learning link:", learningLink); // Keep for debugging if needed
+    }
+
 
     function getInitials(name: string): string {
         if (!name) return '';
-        return name
-            .split(' ')
-            .map((part) => part[0]) // Take the first letter of each word
-            .join(''); // Combine them
+        return name.split(' ').map((part) => part[0]).join('');
     }
 
-    $: initials = user ? getInitials(user.email || user.id) : '';
-
+    // --- Motion/Animation State ---
     let left = 0;
     let width = 0;
     let opacity = 0;
-    let ref: any;
-
-    let navs = [
-        {
-            name: "Home",
-            link: "/",
-        },
-        {
-            name: "Learning",
-            link: "/Learning",
-        },
-        {
-            name: "Quiz",
-            link: "/Quiz",
-        },
-    ];
+    let motionRef: HTMLElement | null = null; // Reference to the UL element
 
     let positionMotion = (node: HTMLElement) => {
-        let refNode = () => {
-            let mint = node.getBoundingClientRect();
-            left = node.offsetLeft;
-            width = mint.width;
+        const handleMouseEnter = () => {
+            if (!node || !motionRef) return;
+            const rect = node.getBoundingClientRect();
+            // Calculate offset relative to the parent UL (motionRef)
+            const parentRect = motionRef.getBoundingClientRect();
+            left = rect.left - parentRect.left + motionRef.scrollLeft; // Account for parent position and potential scroll
+            width = rect.width;
             opacity = 1;
         };
-        node.addEventListener("mouseenter", refNode);
+        node.addEventListener("mouseenter", handleMouseEnter);
         return {
             destroy() {
-                node.removeEventListener("mouseenter", refNode);
+                node.removeEventListener("mouseenter", handleMouseEnter);
             },
         };
     };
 
+    // --- Handlers ---
     function handleLogin(event: { detail: { success: boolean; }; }) {
         if (event.detail.success) {
             toast.success("Logged in successfully!");
@@ -85,30 +101,40 @@
                 toast.error("Failed to log out.");
             } else {
                 toast.success("Logged Out successfully!");
+                goto('/');
             }
         });
     }
 
     function profile() {
-        // Navigate to the profile page
-        // You can use the `goto` function from `$app/navigation` if needed
-        // import { goto } from "$app/navigation";
-        // goto("/Profile");
         console.log("Navigating to profile");
+        // goto("/profile");
     }
+
+    // --- NEW: Click Handler for Learning Link ---
+    function handleLearningClick(event: MouseEvent) {
+        event.preventDefault(); // Stop the browser's default link behavior
+        const targetUrl = learningLink; // Use the reactive variable
+        console.log("Navbar: handleLearningClick triggered. Navigating to:", targetUrl);
+        // Use goto to ensure SvelteKit's router handles the navigation,
+        // especially important for query parameter changes on the same route.
+        goto(targetUrl, {
+             // invalidateAll: true // Use if you need load functions on '/' to re-run
+             // replaceState: false // Default is false, adds to history
+        });
+    }
+
 </script>
 
 {#if isBrowser}
 <nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20 sticky top-0">
     <div class="container flex h-14 max-w-screen-2xl items-center justify-between">
-        <!-- Left Section with Logo and Mobile Menu -->
+        <!-- Left Section -->
         <div class="flex items-center w-full lg:w-auto justify-between lg:justify-start">
+            <!-- Logos -->
             <div class="max-lg:hidden w-full mt-14">
                 <div class="border-2 border-black bg-white p-1 rounded-full">
-                    <a
-                        href="/"
-                        class="h-12 relative mx-auto flex items-center justify-center w-full rounded-full bg-white p-4 text-xs uppercase text-black font-semibold tracking-wide md:p-6 md:text-base transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none"
-                    >
+                    <a href="/" class="h-12 relative mx-auto flex items-center justify-center w-full rounded-full bg-white p-4 text-xs uppercase text-black font-semibold tracking-wide md:p-6 md:text-base transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none">
                         <span class="z-10 font-bold">BrandName</span>
                     </a>
                 </div>
@@ -120,44 +146,45 @@
             <!-- Mobile Menu Button -->
             <div class="lg:hidden">
                 <Sheet>
-                    <SheetTrigger>
-                        <Button variant="ghost" size="icon">
+                    <SheetTrigger asChild let:builder>
+                         <Button variant="ghost" size="icon" builders={[builder]}>
                             <Menu class="h-5 w-5" />
+                            <span class="sr-only">Toggle Menu</span>
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" class="w-72 flex flex-col items-center justify-center p-0">
                         <nav class="flex flex-col items-center justify-center space-y-4 w-full h-full">
-                            {#each [
-                                { href: "/", label: "Home" },
-                                { href: "/Learning", label: "Learning" },
-                                { href: "/Quiz", label: "Quiz" }
-                            ] as route}
-                                <a 
-                                    href={route.href}
-                                    class={`
-                                        w-48 text-center
-                                        px-4 py-2 font-bold text-md rounded-full transition-all duration-300
-                                        border border-transparent
-                                        ${$page.url.pathname === route.href ? 
-                                        'border-primary bg-primary/10' : 
-                                        'hover:border-primary hover:shadow-[inset_0_0_12px_rgba(0,0,0,0.05)] hover:bg-primary/5'
-                                        }
-                                    `}
-                                >
-                                    {route.label}
-                                </a>
-                            {/each}
+                            <!-- Standard Link for Home -->
+                            <a href="/"
+                               class="..."
+                               aria-current={$page.url.pathname === '/' && !$page.url.searchParams.has('openApp') ? 'page' : undefined}>
+                               Home
+                            </a>
+                            <!-- Use handleLearningClick for Learning -->
+                            <a href={learningLink}
+                               on:click={handleLearningClick} 
+                               class="..."
+                               aria-current={$page.url.searchParams.has('openApp') ? 'page' : undefined}>
+                               Learning
+                            </a>
+                             <!-- Standard Link for Quiz -->
+                            <a href="/Quiz"
+                               class="..."
+                               aria-current={$page.url.pathname === '/Quiz' ? 'page' : undefined}>
+                               Quiz
+                            </a>
+
                             {#if user}
-                            <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full mt-14 mr-11">
-                                <Dropdown/>
-                            </Button>
-                        {:else}
-                            <div class="w-1/2 mt-2">
-                                <div class="border-2 border-black bg-white p-1 rounded-full">
-                                    <LoginModal on:login={handleLogin} />
+                                <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full mt-14 mr-11">
+                                    <Dropdown/>
+                                </Button>
+                            {:else}
+                                <div class="w-1/2 mt-2">
+                                    <div class="border-2 border-black bg-white p-1 rounded-full">
+                                        <LoginModal on:login={handleLogin} />
+                                    </div>
                                 </div>
-                            </div>
-                        {/if}
+                            {/if}
                         </nav>
                     </SheetContent>
                 </Sheet>
@@ -168,38 +195,40 @@
         <div class="hidden lg:flex flex-1 items-center justify-center space-x-2">
             <div class="w-full mt-14">
                 <ul
-                    on:mouseleave={() => {
-                        width = width;
-                        left = left;
-                        opacity = 0;
-                    }}
+                    on:mouseleave={() => { opacity = 0; }}
                     class="relative mx-auto flex w-fit rounded-full border-2 border-black bg-white p-1"
+                    bind:this={motionRef}
                 >
-                    {#each navs as item}
+                    <!-- Iterate over the reactively updated 'navs' array -->
+                    {#each navs as item (item.name)}
                         <li
                             use:positionMotion
                             class="relative z-10 block cursor-pointer px-3 py-1.5 text-xs uppercase text-white mix-blend-difference md:px-5 md:py-3 md:text-base"
                         >
-                            <a href={item.link}>{item.name}</a>
+                            {#if item.isLearningLink}
+                                <!-- Use handleLearningClick for the Learning link -->
+                                <a href={item.link}
+                                   on:click={handleLearningClick} 
+                                   aria-current={$page.url.searchParams.has('openApp') ? 'page' : undefined}
+                                >
+                                    {item.name}
+                                </a>
+                            {:else}
+                                <!-- Standard link for other items -->
+                                <a href={item.link}
+                                   aria-current={$page.url.pathname === item.link ? 'page' : undefined}
+                                >
+                                    {item.name}
+                                </a>
+                            {/if}
                         </li>
                     {/each}
                     <Motion
-                        animate={{
-                            left: left,
-                            width: width,
-                            opacity: opacity,
-                        }}
-                        transition={{
-                            type: "spring",
-                            stiffness: 400,
-                            damping: 30,
-                        }}
+                        animate={{ left, width, opacity }}
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         let:motion
                     >
-                        <li
-                            use:motion
-                            class="absolute z-0 h-7 rounded-full bg-black md:h-12"
-                        ></li>
+                        <li use:motion class="absolute z-0 h-7 rounded-full bg-black md:h-12" aria-hidden="true"></li>
                     </Motion>
                 </ul>
             </div>
