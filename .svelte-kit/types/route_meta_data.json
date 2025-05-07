@@ -2,7 +2,6 @@
 	"/": [
 		"src/routes/+page.server.js"
 	],
-	"/Auth": [],
 	"/Learning": [
 		"src/routes/Learning/+page.server.js"
 	],

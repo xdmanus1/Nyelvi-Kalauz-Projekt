@@ -5,6 +5,10 @@
   import LibApp from '$lib/components/Lib.svelte';
   import MusApp from '$lib/components/Museum.svelte';
   import ShopApp from '$lib/components/Shop.svelte';
+  import { Button } from "$lib/components/ui/button";
+  import { Input } from "$lib/components/ui/input";
+    import { toast } from "svelte-sonner";
+
   // Add other app component imports here if used (e.g., DogApp, BirdApp)
   // import DogApp from '$lib/components/DogApp.svelte';
 
@@ -429,6 +433,24 @@
 
   let showDialog = false; // For LanguageDialog
 
+  function shouldOpenDialog(): boolean {
+    if (typeof window === 'undefined') return false;
+
+    if (user) {
+      return !user.user_metadata?.language_from || !user.user_metadata?.language_to;
+    } else {
+      return !localStorage.getItem('selectedLanguage');
+    }
+  }
+
+  // Add this reactive statement to control dialog visibility
+  $: {
+    if (typeof window !== 'undefined') {
+      const shouldShow = shouldOpenDialog();
+      showDialog = shouldShow;
+    }
+  }
+
   // --- NEW: Event Handler for App Opening ---
   function handleAppOpened(event: CustomEvent<{ appId: string }>) {
     const appId = event.detail.appId;
@@ -470,6 +492,58 @@
             // }
         }
     }
+
+  
+  // Add these state variables
+  let showDevTools = false;
+  let showDevTools1 = "";
+  let betaFeatures = false;
+  
+  // Add this subscription
+  authStore.subscribe(store => {
+    betaFeatures = store.betaFeatures === true;
+  });
+  
+  // Add these dev functions
+  function toggleLangDialog() {
+    showDialog = !showDialog;
+  }
+  
+  function forceOpenLangDialog() {
+    // Clear any existing selection
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('selectedLanguage');
+    }
+    // Force dialog open
+    showDialog = true;
+  }
+  
+  function resetLanguageSelection() {
+    if (user) {
+      // Reset user metadata
+      authStore.updateUserLanguage({ from: '', to: '' });
+    }
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('selectedLanguage');
+    }
+    showDialog = true;
+  }
+  
+  function passtest() {
+    if (showDevTools1 === "xdmanus1") {
+      // Perform the action you want when the password is correct
+      toast.success("Password is correct!");
+      showDevTools = true;
+    } else {
+      // Handle incorrect password
+      toast.error("Incorrect password.");
+    }
+  }
+  function handleKeyDown(event: KeyboardEvent) {
+        if (event.key === 'Enter') {
+            passtest();
+        }
+    }
 </script>
 
 <LanguageDialog bind:show={showDialog} />
@@ -477,6 +551,34 @@
 <!-- Main container -->
 <div class="page-container" style="background-color: {bgColor};">
 
+  {#if betaFeatures}
+<div class="dev-tools backdrop-blur-md">
+  <h3>Dev Tools (Beta)</h3>
+  {#if !showDevTools}
+  <Input
+                        bind:value={showDevTools1}
+                        class="mt-1"
+                        aria-invalid={null}
+                        on:keydown={handleKeyDown}
+                        placeholder="Enter password"
+                        type="password"
+                    />
+                    <Button class="mt-2" on:click={passtest}> Login</Button>              
+  {/if}
+  {#if showDevTools}
+  <div class="dev-buttons">
+    <Button on:click={toggleLangDialog}>{showDialog ? 'Hide' : 'Show'} Lang Dialog</Button>
+    
+    <!-- <Button on:click={forceOpenLangDialog}>
+      Force Open Dialog
+    </Button> -->
+    <Button on:click={resetLanguageSelection}>
+      Reset Language
+    </Button>
+  </div>
+  {/if}
+</div>
+{/if}
   {#if windowWidth < 768 && typeof window !== 'undefined' }
     <div class="mobile-message">
         <p>Please view on a larger screen for the interactive map.</p>
@@ -562,6 +664,36 @@
 
 
 <style>
+
+.dev-tools {
+    position: fixed;
+    top: 120px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    z-index: 9999;
+  }
+  
+  .dev-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: column;
+  }
+  
+  .dev-tools button {
+    padding: 0.5rem;
+    background: #444;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .dev-tools button:hover {
+    background: #666;
+  }
   /* Base page styling */
   .page-container {
     margin-top: -5.1rem; /* Offset for navbar height */

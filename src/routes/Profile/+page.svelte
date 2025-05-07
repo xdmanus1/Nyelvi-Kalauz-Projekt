@@ -403,7 +403,7 @@
     <section class="flex justify-center items-center min-h-screen p-4">
         <div class="loading text-5xl">Loading User</div>
     </section>
-{/if} --> // Uncomment if needed
+{/if} --> 
 
 <style>
     /* Keep your loading dots styles if you use the loading section */

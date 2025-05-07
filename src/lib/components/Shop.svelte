@@ -263,7 +263,29 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
+   
+
   }
+  /* .custombg {
+    position: relative;
+    isolation: isolate;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.custombg::before {
+    content: '';
+    position: absolute; 
+    inset: 0; 
+    background-image: url("https://images.unsplash.com/photo-1548148870-adbf75452257?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
+    background-size: cover;
+    background-attachment: local; 
+    background-repeat: repeat-y;
+    filter: blur(10px);
+    z-index: -1;
+    opacity: 0.8;
+    pointer-events: none;
+} */
   .filter-container {
     position: absolute;
     top: 40vh;
@@ -344,7 +366,7 @@
   <!-- Using original content structure -->
   <div class="overflow-hidden rounded-xl mt-16 max-lg:mt-[2.9rem]">
      <!-- Using original classes for the scrollable area -->
-    <div id="style-1" class="a1480 flex-wrap h-screen lg:h-[80vh] w-[77vw] md:w-[90vw] sm:w-[95vw] overflow-y-auto rounded-xl bg-[#000000] p-8 max-w-[80rem] border">
+    <div id="style-1" class="a1480 flex-wrap h-screen lg:h-[80vh] w-[77vw] md:w-[90vw] sm:w-[95vw] bg-black overflow-y-auto rounded-xl p-8 max-w-[80rem] border">
       <h2 class="text-4xl font-bold mb-4 text-center sm:text-3xl">Shop</h2>
 
       {#if displayedCards.length > 0}
