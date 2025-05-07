@@ -135,12 +135,12 @@
             <div class="max-lg:hidden w-full mt-14">
                 <div class="border-2 border-black bg-white p-1 rounded-full">
                     <a href="/" class="h-12 relative mx-auto flex items-center justify-center w-full rounded-full bg-white p-4 text-xs uppercase text-black font-semibold tracking-wide md:p-6 md:text-base transition duration-300 ease-in-out hover:bg-black hover:text-white focus:outline-none">
-                        <span class="z-10 font-bold">BrandName</span>
+                        <span class="z-10 font-bold">Phrase Passport</span>
                     </a>
                 </div>
             </div>
             <a href="/" class="lg:hidden flex items-center space-x-2">
-                <span class="font-bold text-md">YourBrand</span>
+                <span class="font-bold text-md">Phrase Passport</span>
             </a>
 
             <!-- Mobile Menu Button -->
