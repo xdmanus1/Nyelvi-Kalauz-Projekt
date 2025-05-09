@@ -240,7 +240,7 @@
 		background: rgb(0, 0, 0);
 		color: white;
 		padding: 3px 8px; /* Slightly more padding */
-		border-radius: 4px;
+		border-radius: 40px;
 		pointer-events: none;
 		opacity: 0;
 		transition: opacity 0.2s ease 0.1s; /* Slight delay */

@@ -65,6 +65,7 @@ declare module '$env/static/private' {
 	export const npm_config_version_tag_prefix: string;
 	export const VSCODE_GIT_ASKPASS_NODE: string;
 	export const SSL_CERT_FILE: string;
+	export const npm_package_dependencies_canvas_confetti: string;
 	export const npm_package_dependencies__supabase_gotrue_js: string;
 	export const npm_package_scripts_check: string;
 	export const DBUS_SESSION_BUS_ADDRESS: string;
@@ -220,6 +221,7 @@ declare module '$env/dynamic/private' {
 		npm_config_version_tag_prefix: string;
 		VSCODE_GIT_ASKPASS_NODE: string;
 		SSL_CERT_FILE: string;
+		npm_package_dependencies_canvas_confetti: string;
 		npm_package_dependencies__supabase_gotrue_js: string;
 		npm_package_scripts_check: string;
 		DBUS_SESSION_BUS_ADDRESS: string;

@@ -1,17 +1,15 @@
 <script lang="ts">
     import Dropdown from './dropdown.svelte';
     import { Button } from "$lib/components/ui/button";
-    // Avatar not used directly
     import { User, Menu } from "lucide-svelte";
     import { page } from "$app/stores";
-    import { goto } from '$app/navigation'; // Import goto for programmatic navigation
+    import { goto } from '$app/navigation';
     import {
         Sheet,
         SheetContent,
         SheetTrigger,
     } from "$lib/components/ui/sheet";
     import { onMount } from 'svelte';
-    // Ensure AuthState is exported from AuthStore.ts
     import { authStore, type AuthState } from './stores/AuthStore';
     import { toast } from "svelte-sonner";
     import LoginModal from "./login-modal.svelte";
@@ -23,59 +21,44 @@
         isBrowser = true;
     });
 
-    // --- Direct Store Subscription ---
-    const authState = authStore; // Reference to the store
-
-    // --- Reactive Calculation for User/Initials ---
-    $: user = $authState.user; // Use $ prefix for reactive access
+    const authState = authStore;
+    $: user = $authState.user;
     $: initials = user ? getInitials(user.email || user.id) : '';
-
-    // --- Reactive Calculation for Learning Link ---
     $: learningLink = $authState.lastVisitedAppId
         ? `/?openApp=${encodeURIComponent($authState.lastVisitedAppId)}`
-        : '/'; // Fallback to root
+        : '/';
 
-    // --- Define Nav Items - Initial State ---
-    // We will update this array reactively
     let navs = [
         { name: "Home", link: "/", isLearningLink: false },
-        { name: "Learning", link: "/", isLearningLink: true }, // Initial link, will be updated
+        { name: "Learning", link: "/", isLearningLink: true },
         { name: "Quiz", link: "/Quiz", isLearningLink: false },
     ];
 
-    // --- Reactive Update for 'navs' Array (Restoring structure for animation) ---
-    // This block runs whenever learningLink (which depends on $authState) changes.
     $: {
-        // Update the link within the navs array directly
         navs = navs.map(nav => {
             if (nav.isLearningLink) {
-                // Update the link property using the reactive learningLink
                 return { ...nav, link: learningLink };
             }
             return nav;
         });
-        // console.log("Navbar: Reactive update of navs array. New learning link:", learningLink); // Keep for debugging if needed
     }
-
 
     function getInitials(name: string): string {
         if (!name) return '';
         return name.split(' ').map((part) => part[0]).join('');
     }
 
-    // --- Motion/Animation State ---
     let left = 0;
     let width = 0;
     let opacity = 0;
-    let motionRef: HTMLElement | null = null; // Reference to the UL element
+    let motionRef: HTMLElement | null = null;
 
     let positionMotion = (node: HTMLElement) => {
         const handleMouseEnter = () => {
             if (!node || !motionRef) return;
             const rect = node.getBoundingClientRect();
-            // Calculate offset relative to the parent UL (motionRef)
             const parentRect = motionRef.getBoundingClientRect();
-            left = rect.left - parentRect.left + motionRef.scrollLeft; // Account for parent position and potential scroll
+            left = rect.left - parentRect.left + motionRef.scrollLeft;
             width = rect.width;
             opacity = 1;
         };
@@ -87,7 +70,6 @@
         };
     };
 
-    // --- Handlers ---
     function handleLogin(event: { detail: { success: boolean; }; }) {
         if (event.detail.success) {
             toast.success("Logged in successfully!");
@@ -108,27 +90,20 @@
 
     function profile() {
         console.log("Navigating to profile");
-        // goto("/profile");
     }
 
-    // --- NEW: Click Handler for Learning Link ---
     function handleLearningClick(event: MouseEvent) {
-        event.preventDefault(); // Stop the browser's default link behavior
-        const targetUrl = learningLink; // Use the reactive variable
+        event.preventDefault();
+        const targetUrl = learningLink;
         console.log("Navbar: handleLearningClick triggered. Navigating to:", targetUrl);
-        // Use goto to ensure SvelteKit's router handles the navigation,
-        // especially important for query parameter changes on the same route.
-        goto(targetUrl, {
-             // invalidateAll: true // Use if you need load functions on '/' to re-run
-             // replaceState: false // Default is false, adds to history
-        });
+        goto(targetUrl);
     }
 
 </script>
 
 {#if isBrowser}
 <nav class="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-20 sticky top-0">
-    <div class="container flex h-14 max-w-screen-2xl items-center justify-between">
+    <div class="container relative flex h-14 max-w-screen-2xl items-center justify-between">
         <!-- Left Section -->
         <div class="flex items-center w-full lg:w-auto justify-between lg:justify-start">
             <!-- Logos -->
@@ -154,20 +129,17 @@
                     </SheetTrigger>
                     <SheetContent side="left" class="w-72 flex flex-col items-center justify-center p-0">
                         <nav class="flex flex-col items-center justify-center space-y-4 w-full h-full">
-                            <!-- Standard Link for Home -->
                             <a href="/"
                                class="..."
                                aria-current={$page.url.pathname === '/' && !$page.url.searchParams.has('openApp') ? 'page' : undefined}>
                                Home
                             </a>
-                            <!-- Use handleLearningClick for Learning -->
                             <a href={learningLink}
                                on:click={handleLearningClick} 
                                class="..."
                                aria-current={$page.url.searchParams.has('openApp') ? 'page' : undefined}>
                                Learning
                             </a>
-                             <!-- Standard Link for Quiz -->
                             <a href="/Quiz"
                                class="..."
                                aria-current={$page.url.pathname === '/Quiz' ? 'page' : undefined}>
@@ -192,21 +164,19 @@
         </div>
 
         <!-- Desktop Navigation Links -->
-        <div class="hidden lg:flex flex-1 items-center justify-center space-x-2">
+        <div class="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 items-center justify-center space-x-2">
             <div class="w-full mt-14">
                 <ul
                     on:mouseleave={() => { opacity = 0; }}
                     class="relative mx-auto flex w-fit rounded-full border-2 border-black bg-white p-1"
                     bind:this={motionRef}
                 >
-                    <!-- Iterate over the reactively updated 'navs' array -->
                     {#each navs as item (item.name)}
                         <li
                             use:positionMotion
                             class="relative z-10 block cursor-pointer px-3 py-1.5 text-xs uppercase text-white mix-blend-difference md:px-5 md:py-3 md:text-base"
                         >
                             {#if item.isLearningLink}
-                                <!-- Use handleLearningClick for the Learning link -->
                                 <a href={item.link}
                                    on:click={handleLearningClick} 
                                    aria-current={$page.url.searchParams.has('openApp') ? 'page' : undefined}
@@ -214,7 +184,6 @@
                                     {item.name}
                                 </a>
                             {:else}
-                                <!-- Standard link for other items -->
                                 <a href={item.link}
                                    aria-current={$page.url.pathname === item.link ? 'page' : undefined}
                                 >

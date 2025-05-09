@@ -8,7 +8,6 @@
   import { Button } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
     import { toast } from "svelte-sonner";
-
   // Add other app component imports here if used (e.g., DogApp, BirdApp)
   // import DogApp from '$lib/components/DogApp.svelte';
 
@@ -580,7 +579,7 @@
 </div>
 {/if}
   {#if windowWidth < 768 && typeof window !== 'undefined' }
-    <div class="mobile-message">
+    <div class="mobile-message z-40">
         <p>Please view on a larger screen for the interactive map.</p>
         <!-- Consider adding basic mobile navigation/content here -->
     </div>
@@ -695,18 +694,34 @@
     background: #666;
   }
   /* Base page styling */
-  .page-container {
+/* Ensure the container is relative and the inline background-color isn't interfering */
+.page-container {
+    position: relative;
     margin-top: -5.1rem; /* Offset for navbar height */
     width: 100%;
-    min-height: 104vh; /* Ensure full coverage */
-    position: relative;
-    overflow: hidden; /* Prevent unwanted scrollbars */
+    min-height: 104vh;
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #B3D9A1; /* Default, overridden by inline style */
-  }
+    background-color: #B3D9A1; /* This may be adjusted as needed */
+}
 
+/* Force the background image via the pseudo-element */
+.page-container::before {
+    content: '';
+    position: absolute !important;
+    top: 0; 
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    background-image: url('/grass.png') !important;
+    background-size: 15% !important;
+
+    opacity: 0.6 !important; /* Adjust transparency as needed */
+    pointer-events: none;
+    z-index: 0; /* Ensure it's behind your content */
+}
   /* Message for small screens */
   .mobile-message {
       padding: 2rem;

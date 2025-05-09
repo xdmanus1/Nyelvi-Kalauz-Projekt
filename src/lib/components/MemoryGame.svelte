@@ -8,11 +8,14 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
 	import { RotateCcw, Trophy } from 'lucide-svelte';
-
+	import { Progress } from '$lib/components/ui/progress/index.js';
 	// Utility and Helper Imports
 	import { toast } from 'svelte-sonner';
 	import { parser } from '$lib/components/parse';
     import { authStore } from '$lib/components/stores/AuthStore'; // <-- Import AuthStore
+	import confetti from 'canvas-confetti';
+	import { Input } from './ui/input';
+	import { Slider } from './ui/slider';
 
 	// --- Type Definitions ---
 	type CardData = { id: string | number; Type: string; japanese: string; phonetic: string; english: string; category: string; Icon?: string; Input?: boolean; };
@@ -23,7 +26,7 @@
 	export let cards: CardData[] = [];
 
 	// --- Constants ---
-	const MAX_PAIRS = 10;
+	const MAX_PAIRS =	 10;
 	const CHECK_DELAY = 1000;
 
 	// --- Display Name Mappings ---
@@ -181,6 +184,7 @@
             if (matchedPairs === totalPairs) {
                 await tick();
                 toast.success(`Game complete in ${currentFlips} flips!`, { duration: 5000 });
+				confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                 // Update progress via authStore
                 authStore.updateMemoryGameProgress({ currentFlips: currentFlips, completed: true });
             }
@@ -205,7 +209,7 @@
              isChecking = false;
              currentFlips = 0; // <-- RESET flips on reset
              if (synth?.speaking) synth.cancel(); isSpeaking = false; speakingCardId = null;
-             toast.info('Game Reset!');
+             toast.success('Game Reset!');
         } else {
             selectNewTopic();
         }
@@ -218,10 +222,21 @@
         if (synth?.speaking) synth.cancel(); isSpeaking = false; speakingCardId = null;
     }
 
-    function handleRequestSpeak(event: CustomEvent<{ text: string; id: string | number }>) { /* ... same ... */
-        const reqCard = gameBoard.find(c => c.id === event.detail.id); if (reqCard && reqCard.state === 'up') { speakText(event.detail.text, event.detail.id); } else { if (speakingCardId === event.detail.id) { if (synth?.speaking) synth.cancel(); isSpeaking = false; speakingCardId = null; } }
-    }
-
+    function handleRequestSpeak(event: CustomEvent<{ text: string; id: string | number }>) {
+     const reqCard = gameBoard.find(c => c.id === event.detail.id);
+     if (reqCard && reqCard.state === 'up') {
+         // use the phonetic reading if available, otherwise fallback
+         const toSpeak = reqCard.phonetic ?? event.detail.text;
+         speakText(toSpeak, event.detail.id);
+     } else {
+         if (speakingCardId === event.detail.id) {
+             if (synth?.speaking) synth.cancel();
+             isSpeaking = false;
+             speakingCardId = null;
+         }
+     }
+ }
+	$: progressValue = totalPairs ? Math.min((currentFlips / (totalPairs * 2)) * 100, 100) : 0;
 </script>
 
 <!-- HTML Template -->
@@ -229,18 +244,18 @@
 
 	{#if !gameActive}
 		<!-- SELECTION AREA -->
-		<div class="w-full max-w-md flex flex-col gap-6 items-center p-6 border rounded-lg shadow-md bg-card text-card-foreground">
+		<div class="w-full max-w-md flex flex-col gap-6 items-center p-6 border rounded-[20px] shadow-md bg-card text-card-foreground">
 			<h2 class="text-2xl font-bold mb-4 text-center">Memory Game Setup</h2>
 			<!-- Category Selector -->
 			<div class="w-full">
 				<label for="type-select-mem" class="block text-sm font-medium mb-1">Category</label>
 				<Select.Root selected={selectedTypeObj} onSelectedChange={(v) => { selectedType = v?.value; }} >
-					<Select.Trigger class="w-full" id="type-select-mem" aria-label="Select main category"> <Select.Value placeholder="Select a category..." /> </Select.Trigger>
-					<Select.Content>
+					<Select.Trigger class="w-full rounded-full text-center" id="type-select-mem" aria-label="Select main category"> <Select.Value placeholder="Select a category..." /> </Select.Trigger>
+					<Select.Content class="text-center rounded-[20px]">
 						{#each availableTypes as typeValue (typeValue)}
-							<Select.Item value={typeValue} label={getTypeDisplayName(typeValue)}> {getTypeDisplayName(typeValue)} </Select.Item>
+							<Select.Item class="text-center rounded-[20px]" value={typeValue} label={getTypeDisplayName(typeValue)}> {getTypeDisplayName(typeValue)} </Select.Item>
 						{/each}
-                        {#if availableTypes.length === 0}<Select.Label class="text-muted-foreground p-2">No categories loaded</Select.Label>{/if}
+                        {#if availableTypes.length === 0}<Select.Label class="text-center text-muted-foreground p-2">No categories loaded</Select.Label>{/if}
 					</Select.Content>
 				</Select.Root>
 			</div>
@@ -248,20 +263,22 @@
 			<div class="w-full">
 				<label for="category-select-mem" class="block text-sm font-medium mb-1">Subcategory</label>
 				<Select.Root selected={selectedCategoryObj} onSelectedChange={(v) => { selectedCategory = v?.value; }} disabled={!selectedType || availableCategories.length === 0} >
-					<Select.Trigger class="w-full" id="category-select-mem" aria-label="Select subcategory"> <Select.Value placeholder={!selectedType ? 'Select category first' : (availableCategories.length === 0 ? 'No subcategories' : 'Select a subcategory...')} /> </Select.Trigger>
-					<Select.Content>
+					<Select.Trigger class="w-full rounded-full" id="category-select-mem" aria-label="Select subcategory"> <Select.Value placeholder={!selectedType ? 'Select category first' : (availableCategories.length === 0 ? 'No subcategories' : 'Select a subcategory...')} /> </Select.Trigger>
+					<Select.Content class="rounded-[20px]">
 						{#if availableCategories.length > 0}
 							{#each availableCategories as categoryValue (categoryValue)}
-								<Select.Item value={categoryValue} label={getCategoryDisplayName(categoryValue)}> {getCategoryDisplayName(categoryValue)} </Select.Item>
+								<Select.Item class="rounded-[20px]" value={categoryValue} label={getCategoryDisplayName(categoryValue)}> {getCategoryDisplayName(categoryValue)} </Select.Item>
 							{/each}
 						{:else if selectedType}
 							<Select.Label class="text-muted-foreground p-2">No subcategories found</Select.Label>
 						{/if}
 					</Select.Content>
 				</Select.Root>
+				
 			</div>
+			<!-- <Slider value={MAX_PAIRS ? [MAX_PAIRS] : undefined} max={10} step={1} /> -->
 			<!-- Start Button -->
-			<Button on:click={startGame} disabled={!selectedType || !selectedCategory} class="w-full mt-4" size="lg"> Start Memory Game </Button>
+			<Button on:click={startGame} disabled={!selectedType || !selectedCategory} class="w-full mt-4 rounded-3xl" size="lg"> Start Memory Game </Button>
 		</div>
 	{:else}
 		<!-- GAME ACTIVE AREA -->
@@ -273,9 +290,14 @@
 				</h2>
                 <p class="text-sm text-muted-foreground order-2 sm:order-1">Flips: {currentFlips}</p> <!-- Display current flips -->
 				<div class="flex items-center gap-2 flex-shrink-0 order-3">
+
 					<p class="text-md sm:text-lg text-muted-foreground font-medium" aria-live="polite"> Pairs Found: {matchedPairs} / {totalPairs} </p>
 					{#if matchedPairs === totalPairs && totalPairs > 0} <Trophy class="w-6 h-6 text-yellow-500" aria-label="Game Complete"/> {/if}
 				</div>
+			</div>
+			<!-- Progress Bar for Flips -->
+			<div class="w-full flex justify-center">
+				<Progress value={matchedPairs} max={totalPairs} class="w-[60%]" />
 			</div>
 			<!-- Game Board Grid -->
 			<div class={`grid grid-cols-2 sm:${gridColsClass} lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 w-full max-w-3xl`}>

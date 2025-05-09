@@ -209,9 +209,9 @@
                     </AvatarFallback>
                     <!-- <AvatarImage src={user?.user_metadata.avatar_url} alt="User avatar" /> --> <!-- Add if you have avatar URLs -->
                 </Avatar>
-                <Button variant="outline" aria-label="Change avatar" disabled> <!-- Disabled for now -->
+                <!-- <Button variant="outline" aria-label="Change avatar" disabled>
                     Change Avatar
-                </Button>
+                </Button> -->
             </div>
             <form on:submit|preventDefault={handleNameSaveClick} class="space-y-4">
                 <div>
@@ -299,13 +299,14 @@
                         id="language-select"
                         bind:value={selectedPair}
                         on:change={handleLanguageSelection}
-                        class="flex-1 sm:flex-none w-full sm:max-w-[200px] p-2 h-10 rounded-md border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        class="flex-1 sm:flex-none w-full sm:max-w-[200px] p-[3px] h-10 rounded-full border border-input bg-background text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                         aria-label="Select language pair"
                     >
                         {#each languagePairs as pair (pair.from + pair.to)}
-                             <option value={pair} disabled={pair.unable}>
+                             <option class="" value={pair} disabled={pair.unable}>
                                  {pair.from} → {pair.to} {pair.unable ? '(Soon)' : ''}
                              </option>
+                             
                         {/each}
                     </select>
                     <!-- The button might be redundant if selection triggers update -->
@@ -354,17 +355,17 @@
                      </Button>
                  </div>
                  <!-- Delete Account (Example - Implement carefully!) -->
-                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border border-destructive/50 rounded-lg bg-destructive/5">
+                 <!-- <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border border-destructive/50 rounded-lg bg-destructive/5">
                      <div class="space-y-1 text-center sm:text-left">
                          <Label class="text-destructive">Delete Account</Label>
                          <p class="text-sm text-destructive/90">
                              Permanently delete your account and all associated data. This cannot be undone.
                          </p>
                      </div>
-                     <Button variant="destructive" class="w-full sm:w-auto" disabled> <!-- Add on:click handler when implemented -->
+                     <Button variant="destructive" class="w-full sm:w-auto" disabled> 
                          <Trash2 class="w-4 h-4 mr-2" /> Delete Account
                      </Button>
-                 </div>
+                 </div> -->
              </div>
         </Card.Content>
     </Card.Root>
