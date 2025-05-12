@@ -147,12 +147,12 @@
                             </a>
 
                             {#if user}
-                                <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full mt-14 mr-11">
+                                <Button variant="ghost" size="icon" class="relative h-8 w-8 rounded-full mt-16 ">
                                     <Dropdown/>
                                 </Button>
                             {:else}
                                 <div class="w-1/2 mt-2">
-                                    <div class="border-2 border-black bg-white p-1 rounded-full">
+                                    <div class="border-2 border-black bg-white p-1 rounded-full ">
                                         <LoginModal on:login={handleLogin} />
                                     </div>
                                 </div>
